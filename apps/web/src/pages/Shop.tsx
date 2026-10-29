@@ -1,12 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/I18nProvider'
+import type { MessageKey } from '../i18n/messages'
 import { clearBasket, readBasket, setLineKg, type BasketLine } from '../market/basket'
 import { PRODUCE, produceById, type Category } from '../market/catalog'
 
 type Filter = 'all' | Category
 
-const FILTERS: Filter[] = ['all', 'grain', 'veg', 'fruit']
+const FILTERS: { id: Filter; key: MessageKey }[] = [
+  { id: 'all', key: 'shop.all' },
+  { id: 'grain', key: 'shop.grain' },
+  { id: 'veg', key: 'shop.veg' },
+  { id: 'fruit', key: 'shop.fruit' },
+]
 
 export function Shop() {
   const { lang, t } = useI18n()

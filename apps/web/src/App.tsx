@@ -4,6 +4,8 @@ import { Climate } from './pages/Climate'
 import { Guardian } from './pages/Guardian'
 import { Home } from './pages/Home'
 import { Market } from './pages/Market'
+import { Product } from './pages/Product'
+import { Shop } from './pages/Shop'
 import { Onboarding } from './pages/Onboarding'
 import { Precision } from './pages/Precision'
 import { YieldPage } from './pages/YieldPage'
@@ -40,9 +42,11 @@ export default function App() {
         <Route path="/yield" element={<YieldPage />} />
         <Route path="/yield/drivers" element={<YieldPage />} />
         <Route path="/yield/baseline" element={<YieldPage />} />
-        <Route path="/market" element={<Market />} />
+        <Route path="/market" element={<Shop />} />
+        <Route path="/market/prices" element={<Market />} />
         <Route path="/market/hint" element={<Market />} />
         <Route path="/market/listings" element={<Market />} />
+        <Route path="/market/p/:id" element={<Product />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -4,6 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { api } from '../api'
 import { useWorkbench } from '../hooks/useWorkbench'
 import { useI18n } from '../i18n/I18nProvider'
+import { produceById } from '../market/catalog'
 import { taka, tx } from '../work/text'
 
 export function Market() {
@@ -18,6 +19,7 @@ export function Market() {
 
   const view = pathname.endsWith('/hint') ? 'hint' : pathname.endsWith('/listings') ? 'listings' : 'prices'
   const m = data?.market
+  const rice = produceById('rice')
   const maxAvg = m ? Math.max(...m.series.map((s) => s.avg), 1) : 1
   const amount = qty || (m ? String(Math.max(0.1, Number((m.remaining_ton * 0.5).toFixed(2)))) : '0.5')
 
@@ -108,8 +110,17 @@ export function Market() {
         </div>
       )}
 
-      {m && view === 'listings' && (
-        <form className="panel" onSubmit={onList}>
+      {m && view === 'listings' && rice && (
+        <form className="panel stall-form" onSubmit={onList}>
+          <figure className="stall-hero">
+            <img src={rice.image} alt={rice.name[lang]} />
+            <figcaption>
+              <strong>{rice.name[lang]}</strong>
+              <span>
+                {rice.seller[lang]}, {rice.district[lang]}
+              </span>
+            </figcaption>
+          </figure>
           <h2>{t('market.listTitle')}</h2>
           <p className="muted">{t('wb.leftToList', { n: m.remaining_ton.toFixed(2), listed: m.listed_ton.toFixed(2) })}</p>
           <div className="meter" aria-hidden="true">

@@ -14,12 +14,13 @@ export function Product() {
   const [added, setAdded] = useState(false)
 
   if (!item) return <Navigate to="/market" replace />
+  const produce = item
 
   const amount = Math.max(0.5, Number(kg) || 0)
-  const mine = item.id === 'rice'
+  const mine = produce.id === 'rice'
 
   function add() {
-    addToBasket(item.id, amount)
+    addToBasket(produce.id, amount)
     setAdded(true)
   }
 
@@ -29,19 +30,19 @@ export function Product() {
         {t('shop.back')}
       </Link>
       <div className="produce-layout">
-        <img src={item.image} alt={item.name[lang]} />
+        <img src={produce.image} alt={produce.name[lang]} />
         <div className="produce-buy">
           {mine && <p className="stall-pill">{t('shop.yourStall')}</p>}
-          <h2>{item.name[lang]}</h2>
+          <h2>{produce.name[lang]}</h2>
           <p className="produce-price">
-            ৳{item.price} <small>/{t('shop.kg')}</small>
+            ৳{produce.price} <small>/{t('shop.kg')}</small>
           </p>
           <p>
-            {item.seller[lang]}, {item.district[lang]}
+            {produce.seller[lang]}, {produce.district[lang]}
           </p>
-          <p className="muted">{item.grade[lang]}</p>
-          <p>{item.note[lang]}</p>
-          <p className="muted">{t('shop.stock', { n: item.stockKg })}</p>
+          <p className="muted">{produce.grade[lang]}</p>
+          <p>{produce.note[lang]}</p>
+          <p className="muted">{t('shop.stock', { n: produce.stockKg })}</p>
           {mine && data?.market && (
             <p className="stall-note">
               {t('shop.cap', { n: data.market.remaining_ton.toFixed(2) })}
@@ -63,7 +64,7 @@ export function Product() {
           </div>
           {added && (
             <p className="stall-note">
-              {t('shop.added')} · ৳{Math.round(amount * item.price)}
+              {t('shop.added')}. ৳{Math.round(amount * produce.price)}
             </p>
           )}
         </div>
@@ -71,3 +72,4 @@ export function Product() {
     </article>
   )
 }
+

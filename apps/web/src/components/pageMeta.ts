@@ -57,6 +57,8 @@ export const PAGE_META: Record<string, PageMetaKeys> = {
   '/yield/drivers': { title: 'meta.yield.drivers.title', subtitle: 'meta.yield.drivers.sub', tips: yieldTips },
   '/yield/baseline': { title: 'meta.yield.baseline.title', subtitle: 'meta.yield.baseline.sub', tips: yieldTips },
   '/market': { title: 'meta.market.title', subtitle: 'meta.market.sub', tips: marketTips },
+  '/market/prices': { title: 'meta.market.prices.title', subtitle: 'meta.market.prices.sub', tips: marketTips },
+  '/market/p': { title: 'meta.market.product.title', subtitle: 'meta.market.product.sub', tips: marketTips },
   '/market/hint': { title: 'meta.market.hint.title', subtitle: 'meta.market.hint.sub', tips: marketTips },
   '/market/listings': {
     title: 'meta.market.listings.title',

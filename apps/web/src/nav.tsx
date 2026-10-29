@@ -66,7 +66,8 @@ export const SCOPES: NavScope[] = [
       </svg>
     ),
     children: [
-      { to: '/market', labelKey: 'nav.market.prices', end: true },
+      { to: '/market', labelKey: 'nav.market.shop', end: true },
+      { to: '/market/prices', labelKey: 'nav.market.prices' },
       { to: '/market/hint', labelKey: 'nav.market.hint' },
       { to: '/market/listings', labelKey: 'nav.market.listings' },
     ],

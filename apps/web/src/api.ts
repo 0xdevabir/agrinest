@@ -4,7 +4,14 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init)
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(text || res.statusText)
+    let message = text || res.statusText
+    try {
+      const body = JSON.parse(text) as { detail?: unknown }
+      if (typeof body.detail === 'string') message = body.detail
+    } catch {
+      /* keep the raw response */
+    }
+    throw new Error(message)
   }
   return res.json() as Promise<T>
 }
