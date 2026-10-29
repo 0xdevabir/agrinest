@@ -2053,3 +2053,85 @@ button.text-btn {
     transition: none;
   }
 }
+
+.buyer-heading {
+  margin: 1.15rem 0 0.65rem;
+  font-size: 1.2rem;
+}
+
+.buyer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.buyer-list li {
+  background: var(--paper-solid);
+  border-radius: 18px;
+  padding: 0.9rem 1rem 1rem;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.buyer-list li.is-chosen {
+  box-shadow: inset 0 0 0 2px var(--sage-deep);
+}
+
+.buyer-list header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
+.buyer-list header b {
+  color: var(--sage-deep);
+  font-size: 1.35rem;
+  white-space: nowrap;
+}
+
+.buyer-list header small {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.buyer-list .up,
+.buyer-list .down {
+  margin: 0;
+  font-weight: 600;
+}
+
+.buyer-list .up { color: var(--sage-deep); }
+.buyer-list .down { color: var(--warn); }
+
+.buyer-list dl {
+  margin: 0.15rem 0 0.2rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.buyer-list dl div {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.45rem;
+}
+
+.buyer-list dt { color: var(--ink-soft); }
+.buyer-list dd { margin: 0; }
+
+.buyer-list button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.produce-grid { margin-bottom: 1.2rem; }
+
+@media (max-width: 720px) {
+  .buyer-list dl div {
+    grid-template-columns: 1fr;
+    gap: 0.05rem;
+  }
+}
