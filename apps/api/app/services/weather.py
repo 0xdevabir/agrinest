@@ -55,8 +55,9 @@ async def get_weather(lat: float, lon: float, force_seed: bool = False) -> dict[
                     "date": dates[i] if i < len(dates) else "",
                     "precip_mm": float(precip[i]),
                     "temp_max_c": float(tmax[i]),
+                    "temp_min_c": float(tmin[i]) if i < len(tmin) else None,
                 }
-                for i in range(min(3, len(precip)))
+                for i in range(min(7, len(precip)))
             ],
             "source": "open-meteo",
         }
@@ -66,3 +67,4 @@ async def get_weather(lat: float, lon: float, force_seed: bool = False) -> dict[
         data = _seed()
         data["source"] = "seed"
         return data
+

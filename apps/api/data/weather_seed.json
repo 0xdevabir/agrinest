@@ -4,9 +4,13 @@
   "temp_max_c": 34.0,
   "temp_min_c": 24.0,
   "daily": [
-    { "date": "2026-10-29", "precip_mm": 18.0, "temp_max_c": 34.0 },
-    { "date": "2026-10-30", "precip_mm": 10.5, "temp_max_c": 33.0 },
-    { "date": "2026-10-31", "precip_mm": 2.0, "temp_max_c": 32.0 }
+    { "date": "2026-10-29", "precip_mm": 18.0, "temp_max_c": 34.0, "temp_min_c": 24.0 },
+    { "date": "2026-10-30", "precip_mm": 10.5, "temp_max_c": 33.0, "temp_min_c": 24.0 },
+    { "date": "2026-10-31", "precip_mm": 2.0, "temp_max_c": 32.0, "temp_min_c": 23.0 },
+    { "date": "2026-11-01", "precip_mm": 0.4, "temp_max_c": 33.5, "temp_min_c": 23.0 },
+    { "date": "2026-11-02", "precip_mm": 0.0, "temp_max_c": 34.2, "temp_min_c": 22.5 },
+    { "date": "2026-11-03", "precip_mm": 1.2, "temp_max_c": 33.0, "temp_min_c": 23.0 },
+    { "date": "2026-11-04", "precip_mm": 6.0, "temp_max_c": 31.5, "temp_min_c": 23.5 }
   ],
   "source": "seed",
   "note": "Demo seed: heavy rain coming — skip irrigation"

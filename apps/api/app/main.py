@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db import init_db
-from app.routers import advice, climate, dashboard, diagnose, farmers, fields, market, seed, yield_route
+from app.routers import advice, climate, dashboard, diagnose, farmers, fields, market, seed, workbench, yield_route
 
 
 @asynccontextmanager
@@ -38,9 +38,12 @@ app.include_router(climate.router, prefix="/api")
 app.include_router(yield_route.router, prefix="/api")
 app.include_router(market.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
+app.include_router(workbench.router, prefix="/api")
 app.include_router(seed.router, prefix="/api")
 
 
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "product": "AgriSathi"}
+
+

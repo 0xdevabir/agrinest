@@ -142,6 +142,14 @@ export const api = {
     }),
   listings: (district?: string) =>
     req<unknown[]>(`/api/listings${district ? `?district=${encodeURIComponent(district)}` : ''}`),
+  workbench: (fieldId: string) =>
+    req<import('./work/types').Workbench>(`/api/fields/${fieldId}/workbench?force_seed_weather=true`),
+  followTask: (fieldId: string, taskId: string) =>
+    req<EventRow>(`/api/fields/${fieldId}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'advice', payload: { followed: true, task: taskId } }),
+    }),
 }
 
 /** Resize image client-side ≤512px before upload */

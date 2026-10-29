@@ -1,71 +1,81 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { api, type Dashboard } from '../api'
-import { useSessionField } from '../hooks/useSessionField'
+import { useWorkbench } from '../hooks/useWorkbench'
 import { useI18n } from '../i18n/I18nProvider'
+import { tx } from '../work/text'
 
 export function Climate() {
-  const { fieldId } = useSessionField()
   const { pathname } = useLocation()
-  const { t, tr, climate } = useI18n()
-  const [data, setData] = useState<Dashboard | null>(null)
-  const [err, setErr] = useState('')
-
-  useEffect(() => {
-    if (!fieldId) return
-    api
-      .dashboard(fieldId)
-      .then(setData)
-      .catch((e) => setErr(e instanceof Error ? e.message : t('common.loadFail')))
-  }, [fieldId, t])
+  const { lang, t } = useI18n()
+  const { fieldId, data, err } = useWorkbench()
+  const [seen, setSeen] = useState<Record<string, boolean>>({})
 
   if (!fieldId) return <Navigate to="/onboarding" replace />
 
   const view = pathname.endsWith('/variety') ? 'variety' : pathname.endsWith('/outlook') ? 'outlook' : 'alerts'
-  const alerts = data?.climate?.alerts ?? []
+  const c = data?.climate
+
+  function ack(id: string) {
+    setSeen((s) => ({ ...s, [id]: true }))
+    localStorage.setItem(`agri_alert_${fieldId}_${id}`, '1')
+  }
 
   return (
     <>
       {err && <p style={{ color: 'var(--danger)' }}>{err}</p>}
-      {!data && !err && <p className="muted">{t('common.loading')}</p>}
+      {!c && !err && <p className="muted">{t('common.loading')}</p>}
 
-      {data && view === 'alerts' && (
-        <div className="panel">
-          <h2>{t('nav.climate.alerts')}</h2>
-          {!alerts.length && <p className="muted">{t('precision.noRisk')}</p>}
-          {alerts.map((a) => {
-            const c = climate(a.risk_id, a.title_bn, a.action_bn)
+      {c && view === 'alerts' && (
+        <div className="stack">
+          {!c.alerts.length && <p className="panel muted">{t('precision.noRisk')}</p>}
+          {c.alerts.map((a) => {
+            const done = seen[a.risk_id] || localStorage.getItem(`agri_alert_${fieldId}_${a.risk_id}`) === '1'
             return (
-              <div key={a.risk_id} style={{ marginTop: 10 }}>
+              <article key={a.risk_id} className={`panel alert-card ${done ? 'is-done' : ''}`}>
                 <div className="row">
-                  <strong>{c.title}</strong>
+                  <h2 style={{ margin: 0 }}>{tx(a.title, lang)}</h2>
                   <span className={`badge ${a.severity === 'high' ? 'danger' : 'warn'}`}>{a.severity}</span>
                 </div>
-                <p>{c.action}</p>
-              </div>
+                <p className="action-line">{tx(a.action, lang)}</p>
+                <button type="button" className="secondary" disabled={done} onClick={() => ack(a.risk_id)}>
+                  {done ? t('wb.saved') : t('wb.gotIt')}
+                </button>
+              </article>
             )
           })}
+          <p className="muted">{c.weather_source}</p>
         </div>
       )}
 
-      {data && view === 'variety' && (
-        <div className="panel">
-          <h2>{t('nav.climate.variety')}</h2>
-          <p style={{ fontSize: '1.1rem', color: 'var(--ink)' }}>
-            {data.climate?.variety_hint_bn ? tr(data.climate.variety_hint_bn) : t('climate.noVariety')}
-          </p>
+      {c && view === 'variety' && (
+        <div className="stack">
+          {c.varieties.map((v) => (
+            <article key={v.id} className={`panel variety-card ${v.fits ? 'fits' : ''}`}>
+              <div className="row">
+                <h2 style={{ margin: 0 }}>{tx(v.name, lang)}</h2>
+                {v.fits && <span className="badge">{t('wb.fits')}</span>}
+              </div>
+              <p>{tx(v.why, lang)}</p>
+            </article>
+          ))}
+          <p className="chem-note">{t('wb.varietyNote')}</p>
         </div>
       )}
 
-      {data && view === 'outlook' && (
+      {c && view === 'outlook' && (
         <div className="panel">
-          <h2>{t('nav.climate.outlook')}</h2>
-          <p className="muted">{t('precision.weatherSrc', { source: data.climate?.weather_source ?? data.advice?.weather_source ?? '' })}</p>
-          {!alerts.length && <p>{t('precision.noRisk')}</p>}
-          {alerts.map((a) => {
-            const c = climate(a.risk_id, a.title_bn, a.action_bn)
-            return <p key={a.risk_id}>{c.title}</p>
-          })}
+          <h2>{t('wb.week')}</h2>
+          <div className="day-row">
+            {c.outlook.map((d) => (
+              <div key={d.date} className="day-cell">
+                <span>{d.date.slice(5)}</span>
+                <strong>{d.temp_max_c}°</strong>
+                <small>{d.precip_mm} mm</small>
+                <small>{tx(d.chip, lang)}</small>
+              </div>
+            ))}
+          </div>
+          <p className="muted">{c.weather_source}</p>
         </div>
       )}
     </>

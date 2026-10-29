@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation } from 'react-router-dom'
 import { api, resizeImageFile, type Dashboard, type DiagnoseResult, type EventRow } from '../api'
 import { useSessionField } from '../hooks/useSessionField'
 import { useI18n } from '../i18n/I18nProvider'
+import { GuardianDesk } from './GuardianDesk'
 
 type Impact = {
   yield: NonNullable<Dashboard['yield_estimate']>
@@ -149,6 +150,10 @@ export function Guardian() {
 
   const view = pathname.endsWith('/history') ? 'history' : pathname.endsWith('/treatment') ? 'treatment' : 'scan'
 
+  if (view === 'history' || view === 'treatment') {
+    return <GuardianDesk view={view} fieldId={fieldId} />
+  }
+
   return (
     <div className="guardian">
       {view === 'scan' && <section className="viewfinder">
@@ -213,7 +218,7 @@ export function Guardian() {
 
       {err && <p className="panel" style={{ color: 'var(--danger)' }}>{err}</p>}
 
-      {(view === 'scan' || view === 'treatment') && result && dx && (
+      {view === 'scan' && result && dx && (
         <section className="panel dx-card">
           <div className="dx-head">
             <div
@@ -268,7 +273,7 @@ export function Guardian() {
         </section>
       )}
 
-      {view === 'history' && <section className="panel">
+      {false && <section className="panel">
         <h2>{t('guardian.history')}</h2>
         {!history.length && <p className="muted">{t('guardian.emptyHist')}</p>}
         <ul className="dx-timeline">
