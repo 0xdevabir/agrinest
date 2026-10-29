@@ -1,0 +1,10 @@
+{
+  "name": "agrisathi",
+  "private": true,
+  "scripts": {
+    "dev:api": "cd apps/api && .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "dev:web": "cd apps/web && npm run dev",
+    "seed": "curl -s -X POST http://127.0.0.1:8000/api/seed/rahim",
+    "build:web": "cd apps/web && npm run build"
+  }
+}

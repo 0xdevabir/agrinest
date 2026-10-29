@@ -1,0 +1,5 @@
+{
+  "rice": { "t_per_ha": 3.2, "variety_factors": { "BRRI dhan28": 1.0, "BRRI dhan29": 1.05, "BRRI dhan51": 0.95, "BRRI dhan52": 0.95 } },
+  "potato": { "t_per_ha": 20.0, "variety_factors": { "default": 1.0 } },
+  "tomato": { "t_per_ha": 15.0, "variety_factors": { "default": 1.0 } }
+}

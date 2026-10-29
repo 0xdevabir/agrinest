@@ -1,0 +1,17 @@
+{
+  "flood_tolerant": [
+    { "id": "BRRI dhan51", "name_bn": "বিআরআরআই ধান৫১", "note_bn": "বন্যা সহনশীল" },
+    { "id": "BRRI dhan52", "name_bn": "বিআরআরআই ধান৫২", "note_bn": "বন্যা সহনশীল" }
+  ],
+  "salt_tolerant": [
+    { "id": "BRRI dhan47", "name_bn": "বিআরআরআই ধান৪৭", "note_bn": "লবণাক্ততা সহনশীল" },
+    { "id": "BRRI dhan67", "name_bn": "বিআরআরআই ধান৬৭", "note_bn": "লবণাক্ততা সহনশীল" }
+  ],
+  "district_tags": {
+    "রংপুর": ["flood_tolerant"],
+    "Rangpur": ["flood_tolerant"],
+    "খুলনা": ["salt_tolerant", "flood_tolerant"],
+    "সাতক্ষীরা": ["salt_tolerant"],
+    "বরিশাল": ["flood_tolerant"]
+  }
+}

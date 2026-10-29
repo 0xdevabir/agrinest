@@ -1,0 +1,19 @@
+{
+  "rice": {
+    "stages": [
+      { "id": "nursery", "name_bn": "চারা", "day_start": 0, "day_end": 20 },
+      { "id": "tillering", "name_bn": "কুশি গজানো", "day_start": 21, "day_end": 45 },
+      { "id": "panicle", "name_bn": "থোড় আসা", "day_start": 46, "day_end": 70 },
+      { "id": "flowering", "name_bn": "ফুল ফোটা", "day_start": 71, "day_end": 90 },
+      { "id": "maturity", "name_bn": "পাকা", "day_start": 91, "day_end": 130 }
+    ],
+    "urea_windows": ["tillering", "panicle"],
+    "tips_bn": {
+      "nursery": "চারা সমান উচ্চতার রাখুন এবং ছায়া দিন",
+      "tillering": "কুশি বাড়াতে পর্যাপ্ত পানি ও ইউরিয়া প্রয়োগের সময়",
+      "panicle": "থোড় পর্যায়ে পানি ধরে রাখুন",
+      "flowering": "ফুল ফোটার সময় খরা চাপ এড়ান",
+      "maturity": "ফসল কাটার আগে পানি কমিয়ে দিন"
+    }
+  }
+}

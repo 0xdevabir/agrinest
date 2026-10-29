@@ -1,0 +1,18 @@
+---
+description: AgriSathi hackathon product constraints and agent routing
+alwaysApply: true
+---
+
+# AgriSathi
+
+Bangla-first unified farming PWA. Five features = one season loop on shared Farmer → Field → Event.
+
+Stack: React+Vite PWA · FastAPI · Supabase · MobileNetV3/EfficientNet-B0 · Python rules · LLM Bangla polish.
+
+Hero: Crop Guardian. Gate at hour 24. Never cut Crop Guardian or shared profile.
+
+Cut order: FarmMarket buyer matching → YieldMax history → Climate risk map → voice.
+
+Agents: see `AGENTS.md` and `.cursor/skills/agrisathi-*/SKILL.md`. Plan: `docs/ULTIMATE_PLAN.md`.
+
+Chemical advice: BRRI/DAE sources + confirm with local agriculture officer.

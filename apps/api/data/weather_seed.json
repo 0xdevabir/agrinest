@@ -1,0 +1,13 @@
+{
+  "precip_sum_48h_mm": 28.5,
+  "precip_24h_mm": 18.0,
+  "temp_max_c": 34.0,
+  "temp_min_c": 24.0,
+  "daily": [
+    { "date": "2026-10-29", "precip_mm": 18.0, "temp_max_c": 34.0 },
+    { "date": "2026-10-30", "precip_mm": 10.5, "temp_max_c": 33.0 },
+    { "date": "2026-10-31", "precip_mm": 2.0, "temp_max_c": 32.0 }
+  ],
+  "source": "seed",
+  "note": "Demo seed: heavy rain coming — skip irrigation"
+}
