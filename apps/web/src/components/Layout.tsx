@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { api, type Dashboard } from '../api'
 import { useSessionField } from '../hooks/useSessionField'
 import { useI18n } from '../i18n/I18nProvider'
+import { SCOPES, scopeForPath } from '../nav'
 import { metaKeysForPath } from './pageMeta'
 
 const PANEL_KEY = 'agrisathi_panels'
@@ -21,58 +22,6 @@ function loadPanels(): PanelState {
   }
 }
 
-const linkDefs = [
-  {
-    to: '/',
-    labelKey: 'nav.home' as const,
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" />
-      </svg>
-    ),
-  },
-  {
-    to: '/guardian',
-    labelKey: 'nav.guardian' as const,
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3c-2.8 2.4-4.5 5.2-4.5 8a4.5 4.5 0 1 0 9 0c0-2.8-1.7-5.6-4.5-8Z" />
-        <path d="M9 20h6" />
-      </svg>
-    ),
-  },
-  {
-    to: '/precision',
-    labelKey: 'nav.precision' as const,
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="3.2" />
-        <path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6" />
-      </svg>
-    ),
-  },
-  {
-    to: '/yield',
-    labelKey: 'nav.yield' as const,
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 19V9.5L12 5l7 4.5V19" />
-        <path d="M9 19v-5h6v5" />
-      </svg>
-    ),
-  },
-  {
-    to: '/market',
-    labelKey: 'nav.market' as const,
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 8h16l-1.2 10.2A2 2 0 0 1 16.8 20H7.2a2 2 0 0 1-2-1.8L4 8Z" />
-        <path d="M8 8V6.5A4 4 0 0 1 12 2.5 4 4 0 0 1 16 6.5V8" />
-      </svg>
-    ),
-  },
-]
-
 function PanelToggleIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -86,6 +35,7 @@ export function Layout() {
   const location = useLocation()
   const { t, lang, toggleLang, tr } = useI18n()
   const keys = metaKeysForPath(location.pathname)
+  const activeScope = scopeForPath(location.pathname)
   const { fieldId } = useSessionField()
   const [dash, setDash] = useState<Dashboard | null>(null)
   const [panels, setPanels] = useState<PanelState>(loadPanels)
@@ -256,18 +206,43 @@ export function Layout() {
         </div>
 
         <nav className="rail-nav">
-          {linkDefs.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.to === '/'}
-              className={({ isActive }) => `rail-link${isActive ? ' active' : ''}`}
-              title={t(l.labelKey)}
-            >
-              <span className="rail-ico">{l.icon}</span>
-              <span className="rail-label">{t(l.labelKey)}</span>
-            </NavLink>
-          ))}
+          <Link to="/" className={`rail-link rail-home${location.pathname === '/' ? ' active' : ''}`}>
+            <span className="rail-ico">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" />
+              </svg>
+            </span>
+            <span className="rail-label">{t('nav.home')}</span>
+          </Link>
+          {SCOPES.map((scope) => {
+            const open = location.pathname === scope.to || location.pathname.startsWith(`${scope.to}/`)
+            return (
+              <div key={scope.id} className={`scope${open ? ' open' : ''}`}>
+                <NavLink
+                  to={scope.to}
+                  end
+                  className={`rail-link scope-head${open ? ' on' : ''}`}
+                  title={t(scope.labelKey)}
+                >
+                  <span className="rail-ico">{scope.icon}</span>
+                  <span className="rail-label">{t(scope.labelKey)}</span>
+                  <span className="scope-chevron" aria-hidden="true" />
+                </NavLink>
+                <div className="scope-kids">
+                  {scope.children.map((child) => (
+                    <NavLink
+                      key={child.to}
+                      to={child.to}
+                      end={child.end}
+                      className={({ isActive }) => `rail-sub${isActive ? ' active' : ''}`}
+                    >
+                      {t(child.labelKey)}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </nav>
       </aside>
 
@@ -277,6 +252,20 @@ export function Layout() {
             <p className="stage-kicker">{t(keys.title)}</p>
             <h1 className="stage-title">{t(keys.subtitle)}</h1>
           </div>
+          {activeScope && (
+            <nav className="scope-subnav" aria-label={t(activeScope.labelKey)}>
+              {activeScope.children.map((child) => (
+                <NavLink
+                  key={child.to}
+                  to={child.to}
+                  end={child.end}
+                  className={({ isActive }) => `scope-chip${isActive ? ' active' : ''}`}
+                >
+                  {t(child.labelKey)}
+                </NavLink>
+              ))}
+            </nav>
+          )}
         </header>
         <div className="stage-scroll">
           <Outlet />
@@ -365,17 +354,15 @@ export function Layout() {
       )}
 
       <nav className="dock glass-float" aria-label={t('nav.mobile')}>
-        {linkDefs.map((l) => (
-          <NavLink
-            key={l.to}
-            to={l.to}
-            end={l.to === '/'}
-            className={({ isActive }) => `dock-link${isActive ? ' active' : ''}`}
-          >
-            <span className="rail-ico">{l.icon}</span>
-            <span>{t(l.labelKey)}</span>
-          </NavLink>
-        ))}
+        {SCOPES.map((scope) => {
+          const on = location.pathname === scope.to || location.pathname.startsWith(`${scope.to}/`)
+          return (
+            <NavLink key={scope.id} to={scope.to} className={`dock-link${on ? ' active' : ''}`}>
+              <span className="rail-ico">{scope.icon}</span>
+              <span>{t(scope.shortKey)}</span>
+            </NavLink>
+          )
+        })}
       </nav>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { api, resizeImageFile, type Dashboard, type DiagnoseResult, type EventRow } from '../api'
 import { useSessionField } from '../hooks/useSessionField'
 import { useI18n } from '../i18n/I18nProvider'
@@ -11,6 +11,7 @@ type Impact = {
 
 export function Guardian() {
   const { fieldId } = useSessionField()
+  const { pathname } = useLocation()
   const { t, disease, tr } = useI18n()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -146,9 +147,11 @@ export function Guardian() {
     : null
   const pct = result ? Math.round(result.confidence * 100) : 0
 
+  const view = pathname.endsWith('/history') ? 'history' : pathname.endsWith('/treatment') ? 'treatment' : 'scan'
+
   return (
     <div className="guardian">
-      <section className="viewfinder">
+      {view === 'scan' && <section className="viewfinder">
         {camOn ? (
           <video ref={videoRef} className="viewfinder-media" playsInline muted autoPlay />
         ) : preview ? (
@@ -161,9 +164,9 @@ export function Guardian() {
         )}
         {camOn && <span className="reticle live" aria-hidden="true" />}
         {busy && <p className="viewfinder-status pulse">{t('guardian.analyzing')}</p>}
-      </section>
+      </section>}
 
-      <div className="shutter-row">
+      {view === 'scan' && <div className="shutter-row">
         {!camOn ? (
           <button type="button" onClick={() => startCam(facing)}>
             {t('guardian.live')}
@@ -194,9 +197,9 @@ export function Guardian() {
             }}
           />
         </label>
-      </div>
+      </div>}
 
-      <div className="field demo-force">
+      {view === 'scan' && <div className="field demo-force">
         <label htmlFor="force">{t('guardian.force')}</label>
         <select id="force" value={force} onChange={(e) => setForce(e.target.value)}>
           <option value="">{t('guardian.auto')}</option>
@@ -206,11 +209,11 @@ export function Guardian() {
           <option value="sheath_blight">{t('guardian.sheath')}</option>
           <option value="healthy">{t('guardian.healthy')}</option>
         </select>
-      </div>
+      </div>}
 
       {err && <p className="panel" style={{ color: 'var(--danger)' }}>{err}</p>}
 
-      {result && dx && (
+      {(view === 'scan' || view === 'treatment') && result && dx && (
         <section className="panel dx-card">
           <div className="dx-head">
             <div
@@ -244,7 +247,7 @@ export function Guardian() {
         </section>
       )}
 
-      {impact && (
+      {view === 'scan' && impact && (
         <section className="sync-grid" aria-label={t('guardian.synced')}>
           <p className="sync-kicker">{t('guardian.synced')}</p>
           <Link className="sync-card" to="/yield">
@@ -265,7 +268,7 @@ export function Guardian() {
         </section>
       )}
 
-      <section className="panel">
+      {view === 'history' && <section className="panel">
         <h2>{t('guardian.history')}</h2>
         {!history.length && <p className="muted">{t('guardian.emptyHist')}</p>}
         <ul className="dx-timeline">
@@ -281,7 +284,7 @@ export function Guardian() {
             )
           })}
         </ul>
-      </section>
+      </section>}
     </div>
   )
 }

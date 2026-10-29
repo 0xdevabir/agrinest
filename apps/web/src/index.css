@@ -102,7 +102,7 @@ button:disabled {
 /* ——— NotebookLM-style studio shell ——— */
 
 .studio {
-  --rail-w: 212px;
+  --rail-w: 248px;
   --info-w: 248px;
   --rail-pad-x: 0.55rem;
   --rail-pad-y: 0.65rem;
@@ -1571,4 +1571,85 @@ button:disabled {
   display: flex;
   gap: 0.55rem;
   align-items: flex-start;
+}
+
+.scope-head.on {
+  color: var(--sage-deep);
+}
+.scope-chevron {
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: 0.7;
+}
+.scope.open .scope-chevron {
+  transform: rotate(45deg);
+}
+.scope-kids {
+  display: none;
+  margin: 0 0 0.35rem 1.15rem;
+  padding-left: 0.55rem;
+  border-left: 1px solid rgba(168, 188, 161, 0.55);
+}
+.scope.open .scope-kids {
+  display: grid;
+  gap: 0.05rem;
+}
+.rail-sub {
+  display: block;
+  min-height: 32px;
+  padding: 0.32rem 0.45rem;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+.rail-sub:hover {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+}
+.rail-sub.active {
+  color: var(--sage-deep);
+  background: rgba(255, 255, 255, 0.72);
+  font-weight: 650;
+}
+.rail.is-rail .scope-kids,
+.rail.is-rail .scope-chevron,
+.rail.is-rail .rail-home .rail-label {
+  display: none;
+}
+.scope-subnav {
+  display: none;
+}
+.stage-top {
+  flex-wrap: wrap;
+}
+@media (max-width: 1100px) {
+  .scope-kids,
+  .scope-chevron {
+    display: none !important;
+  }
+  .scope-subnav {
+    display: flex;
+    gap: 0.4rem;
+    width: 100%;
+    overflow-x: auto;
+    padding: 0.15rem 0 0.35rem;
+  }
+  .scope-chip {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--ink-soft);
+    font-size: 0.86rem;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  .scope-chip.active {
+    background: var(--sage-soft);
+    color: var(--sage-deep);
+  }
 }

@@ -51,7 +51,7 @@ export function Home() {
               <p>{tr(data.advice?.summary_bn, t('common.loading'))}</p>
             </Link>
 
-            <Link className="slot" to="/precision#climate">
+            <Link className="slot" to="/climate">
               <p className="eyebrow">Climate Smart</p>
               <strong>{alertView?.title ?? t('home.weatherAlert')}</strong>
               <p>{alertView?.action ?? t('home.noAlert')}</p>
