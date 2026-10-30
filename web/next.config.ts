@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next'
+import path from 'path'
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '..'),
   transpilePackages: ['@agrisathi/shared-types'],
   async rewrites() {
     const api = process.env.API_PROXY_TARGET || 'http://127.0.0.1:8000'
@@ -9,3 +12,4 @@ const nextConfig: NextConfig = {
 }
 
 export default nextConfig
+

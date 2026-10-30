@@ -30,8 +30,10 @@ async function bootstrap() {
   }
 
   const port = Number(process.env.PORT || 8000);
-  await app.listen(port);
-  console.log(`AgriSathi API http://127.0.0.1:${port}/${prefix}`);
+  const host = process.env.HOST || "0.0.0.0";
+  await app.listen(port, host);
+  console.log(`AgriSathi API http://${host}:${port}/${prefix}`);
 }
 
 void bootstrap();
+

@@ -35,6 +35,20 @@ npm run db:push
 
 First time for the Python services: `python3 -m venv apps/crop-guardian/.venv && apps/crop-guardian/.venv/bin/pip install -r apps/crop-guardian/requirements.txt` and the same for `apps/agronomy`. Nest calls those URLs (`GUARDIAN_URL`, `AGRONOMY_URL`). If a service is down, Nest uses its local copy and marks the response `nest-fallback`. FarmMarket stays in Nest.
 
+## Docker
+
+One command on macOS, Windows, and Linux. Use Docker Desktop on Mac or Windows, or Docker Engine with the Compose v2 plugin on Linux.
+
+```bash
+docker compose up --build
+```
+
+Open http://localhost:5173. That starts the Next.js app, the Nest API, Crop Guardian, and the agronomy service. SQLite and leaf photos are Docker volumes (`agrisathi-db`, `agrisathi-uploads`), so nothing depends on a Mac, Windows, or Linux path. The first boot creates the database and seeds Rahim. `docker compose up` again keeps that data. `docker compose down` stops the stack and keeps the volumes. `docker compose down -v` deletes the database and uploaded photos.
+
+The images are Linux containers. Docker Desktop runs them on Apple Silicon, Intel, and Windows. Stop a local `dev:api` or `dev:web` first if port 8000 or 5173 is already taken.
+
+If a host port is already taken, set `WEB_PORT`, `API_PORT`, `GUARDIAN_PORT`, or `AGRONOMY_PORT`. Inside the network the app still calls Nest at `http://api:8000`.
+
 ## Scripts
 | Script | What it does |
 ... [lean-ctx: omitted 1 lines]

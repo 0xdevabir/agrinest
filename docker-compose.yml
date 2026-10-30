@@ -1,0 +1,137 @@
+name: agrisathi
+
+x-api-build: &api-build
+  context: .
+  dockerfile: apps/api/Dockerfile
+
+services:
+  guardian:
+    build:
+      context: .
+      dockerfile: apps/crop-guardian/Dockerfile
+    environment:
+      AGRISATHI_DATA_DIR: /data
+      AGRISATHI_DISEASE_CONF_THRESHOLD: "0.45"
+    ports:
+      - "8011:8011"
+    init: true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8011/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  agronomy:
+    build:
+      context: .
+      dockerfile: apps/agronomy/Dockerfile
+    environment:
+      AGRISATHI_DATA_DIR: /data
+      AGRISATHI_USE_SEED_WEATHER: "false"
+    ports:
+      - "8012:8012"
+    init: true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8012/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  api:
+    build: *api-build
+    environment:
+      DATABASE_URL: file:/data/agrisathi.db
+      PORT: "8000"
+      HOST: 0.0.0.0
+      API_PREFIX: api
+      CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
+      GUARDIAN_URL: http://guardian:8011
+      AGRONOMY_URL: http://agronomy:8012
+      AGRISATHI_DISEASE_CONF_THRESHOLD: "0.45"
+      AGRISATHI_USE_SEED_WEATHER: "false"
+      SWAGGER_ENABLED: "true"
+    volumes:
+      - agrisathi-db:/data
+      - agrisathi-uploads:/app/apps/api/uploads
+    ports:
+      - "${API_PORT:-8000}:8000"
+    init: true
+    depends_on:
+      guardian:
+        condition: service_healthy
+      agronomy:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 25s
+
+  seed:
+    build: *api-build
+    environment:
+      API_URL: http://api:8000
+    entrypoint: ["node"]
+    command:
+      - -e
+      - 'fetch(process.env.API_URL + "/api/seed/rahim", { method: "POST" }).then(async (res) => { const text = await res.text(); console.log(text); process.exit(res.ok ? 0 : 1); }).catch((err) => { console.error(err); process.exit(1); })'
+    init: true
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    environment:
+      API_PROXY_TARGET: http://api:8000
+      PORT: "5173"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    init: true
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5173/').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+volumes:
+  agrisathi-db:
+  agrisathi-uploads:
+
+
+

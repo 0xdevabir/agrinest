@@ -16,7 +16,9 @@
     "dev:agronomy": "apps/agronomy/.venv/bin/uvicorn app.main:app --app-dir apps/agronomy --host 127.0.0.1 --port 8012 --reload",
     "seed": "curl -s -X POST http://127.0.0.1:8000/api/seed/rahim",
     "build:api": "npm run build --workspace @agrisathi/api",
-    "build:web": "npm run build --workspace web"
+    "build:web": "npm run build --workspace web",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
   },
   "allowScripts": {
     "prisma@6.19.3": true,
@@ -25,4 +27,5 @@
     "sharp@0.34.5": true
   }
 }
+
 
