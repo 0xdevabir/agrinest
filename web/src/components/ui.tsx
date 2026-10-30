@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, type ReactNode } from 'react'
+import { TabGlyph, type TabIcon } from '@/components/tab-icons'
 import { useApp, type Role } from '@/lib/app'
 import { HEALTH, type Health } from '@/lib/types'
 
@@ -48,30 +49,30 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
   )
 }
 
-const TABS: Record<Role, { href: string; icon: string; bn: string; en: string }[]> = {
+const TABS: Record<Role, { href: string; icon: TabIcon; bn: string; en: string }[]> = {
   farmer: [
-    { href: '/', icon: '🗺️', bn: 'আমার খামার', en: 'My Farm' },
-    { href: '/market', icon: '🛒', bn: 'বাজার', en: 'Market' },
-    { href: '/profile', icon: '🏅', bn: 'প্রোফাইল', en: 'Profile' },
+    { href: '/', icon: 'field', bn: 'আমার খামার', en: 'My Farm' },
+    { href: '/market', icon: 'market', bn: 'বাজার', en: 'Market' },
+    { href: '/profile', icon: 'medal', bn: 'প্রোফাইল', en: 'Profile' },
   ],
   agent: [
-    { href: '/', icon: '🗺️', bn: 'ভিজিট', en: 'Visits' },
-    { href: '/farmers', icon: '👥', bn: 'কৃষক', en: 'Farmers' },
-    { href: '/profile', icon: '👤', bn: 'প্রোফাইল', en: 'Profile' },
+    { href: '/', icon: 'pin', bn: 'ভিজিট', en: 'Visits' },
+    { href: '/farmers', icon: 'people', bn: 'কৃষক', en: 'Farmers' },
+    { href: '/profile', icon: 'person', bn: 'প্রোফাইল', en: 'Profile' },
   ],
   officer: [
-    { href: '/', icon: '🗺️', bn: 'এলাকা', en: 'Area' },
-    { href: '/reviews', icon: '🔬', bn: 'রিভিউ', en: 'Reviews' },
-    { href: '/profile', icon: '👤', bn: 'প্রোফাইল', en: 'Profile' },
+    { href: '/', icon: 'map', bn: 'এলাকা', en: 'Area' },
+    { href: '/reviews', icon: 'review', bn: 'রিভিউ', en: 'Reviews' },
+    { href: '/profile', icon: 'person', bn: 'প্রোফাইল', en: 'Profile' },
   ],
   admin: [
-    { href: '/', icon: '📊', bn: 'সারা দেশ', en: 'Nationwide' },
-    { href: '/officers', icon: '🏛️', bn: 'কর্মকর্তা', en: 'Officers' },
-    { href: '/profile', icon: '👤', bn: 'প্রোফাইল', en: 'Profile' },
+    { href: '/', icon: 'chart', bn: 'সারা দেশ', en: 'Nationwide' },
+    { href: '/officers', icon: 'badge', bn: 'কর্মকর্তা', en: 'Officers' },
+    { href: '/profile', icon: 'person', bn: 'প্রোফাইল', en: 'Profile' },
   ],
   buyer: [
-    { href: '/market', icon: '🛒', bn: 'বাজার', en: 'Market' },
-    { href: '/profile', icon: '👤', bn: 'প্রোফাইল', en: 'Profile' },
+    { href: '/market', icon: 'market', bn: 'বাজার', en: 'Market' },
+    { href: '/profile', icon: 'person', bn: 'প্রোফাইল', en: 'Profile' },
   ],
 }
 
@@ -81,10 +82,9 @@ export function TabBar() {
   if (!user) return null
   return (
     <nav className="tabbar glass" aria-label="Main">
-      <div className="side-brand"><span aria-hidden>🌾</span><b>AgriNest</b></div>
       {TABS[user.role].map((tab) => (
         <Link key={tab.href} href={tab.href} className={path === tab.href ? 'on' : ''}>
-          <b aria-hidden>{tab.icon}</b>{t(tab.bn, tab.en)}
+          <span className="tab-ico"><TabGlyph name={tab.icon} /></span>{t(tab.bn, tab.en)}
         </Link>
       ))}
     </nav>
