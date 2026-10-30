@@ -12,15 +12,27 @@ import { Sheet, StepBar, kg } from './ui'
 
 type Level = { level: number; xp: number; floor: number; next: number; pct: number }
 type Quest = Localized & { id: string; type: 'add_land' | 'guidance' | 'plant' | 'harvest' | 'scan'; points: number; field_id: number | null; urgent?: boolean }
+type FarmAlert = Localized & { code: string; level: string; field_id: number; field_name: string }
 type FarmData = {
   level: Level
   quests: Quest[]
   fields: Field[]
-  alerts: (Localized & { level: string; field_id: number; field_name: string })[]
+  alerts: FarmAlert[]
   totals: { acres: number; growing: number; expected_kg: number }
 }
 
 const QUEST_ICON: Record<Quest['type'], MarkName> = { add_land: 'pin', guidance: 'officer', plant: 'seedling', harvest: 'harvest', scan: 'camera' }
+
+// Alerts come fresh from the weather, so a hidden one only stays hidden for the day.
+const HIDDEN_ALERTS = 'agrinest.alerts.hidden'
+const alertKey = (a: FarmAlert) => `${a.field_id}:${a.code}`
+
+function readHiddenAlerts(): string[] {
+  try {
+    const s = JSON.parse(localStorage.getItem(HIDDEN_ALERTS) ?? 'null')
+    return s?.day === new Date().toDateString() && Array.isArray(s.keys) ? s.keys : []
+  } catch { return [] }
+}
 
 function LandsSheet({ fields, onClose, onOpen, onEdit, onAdd, onChange }: { fields: Field[]; onClose: () => void; onOpen: (id: number) => void; onEdit: (id: number) => void; onAdd: () => void; onChange: () => void | Promise<void> }) {
   const { t, pick, num, toast } = useApp()
@@ -63,14 +75,22 @@ export function FarmHome() {
   const stage = useRef<StageHandle>(null)
   const [drawing, setDrawing] = useState(false)
   const [managing, setManaging] = useState(false)
+  const [hiddenAlerts, setHiddenAlerts] = useState<string[]>([])
 
+  useEffect(() => { setHiddenAlerts(readHiddenAlerts()) }, [])
+
+  const hideAlert = (a: FarmAlert) => {
+    const keys = [...hiddenAlerts, alertKey(a)]
+    setHiddenAlerts(keys)
+    try { localStorage.setItem(HIDDEN_ALERTS, JSON.stringify({ day: new Date().toDateString(), keys })) } catch { /* not persisted */ }
+  }
   const changed = async () => { await reload(); refreshUser().catch(() => undefined) }
   const start = (q: Quest) => {
     if (q.type === 'add_land') setDrawing(true)
     else if (q.field_id) stage.current?.open(q.field_id, q.type === 'plant' || q.type === 'scan' || q.type === 'harvest' ? q.type : undefined)
   }
   const fields = data?.fields ?? []
-  const alert = data?.alerts[0]
+  const alert = data?.alerts.find((a) => !hiddenAlerts.includes(alertKey(a)))
 
   return (
     <MapStage ref={stage} fields={fields} onChange={changed} drawing={drawing} onDrawingChange={setDrawing}>
@@ -106,9 +126,12 @@ export function FarmHome() {
 
       <div className="hud-bottom">
         {alert && (
-          <button className={`notice glass ${alert.level === 'high' ? 'high' : 'warn'}`} style={{ margin: '0 12px 8px', border: 0, textAlign: 'left', width: 'calc(100% - 24px)', maxWidth: 480 }} onClick={() => stage.current?.open(alert.field_id)}>
-            <span aria-hidden><Mark name="storm" frame="inline" /></span><span><b>{alert.field_name}:</b> {pick(alert)}</span>
-          </button>
+          <div className={`notice map-alert ${alert.level === 'high' ? 'high' : 'warn'}`} role="status">
+            <button className="map-alert-open" onClick={() => { hideAlert(alert); stage.current?.open(alert.field_id) }}>
+              <span aria-hidden><Mark name="storm" frame="inline" /></span><span><b>{alert.field_name}:</b> {pick(alert)}</span>
+            </button>
+            <button className="close" aria-label={t('বিজ্ঞপ্তি লুকান', 'Hide notification')} onClick={() => hideAlert(alert)}>✕</button>
+          </div>
         )}
         <div className="quests">
           {(data?.quests ?? []).map((q) => (

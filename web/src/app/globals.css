@@ -209,6 +209,11 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .notice.warn { background: rgba(224, 123, 44, .14); }
 .notice.high { background: rgba(217, 68, 63, .13); }
 .notice.info { background: var(--tint); }
+/* Sits on the satellite map, so the tint needs a solid base for the text to stay readable. */
+.map-alert { margin: 0 12px 8px; width: calc(100% - 24px); max-width: 480px; padding: 8px; gap: 4px; align-items: flex-start; box-shadow: 0 6px 24px rgba(20, 25, 25, 0.14); }
+.notice.map-alert.warn { background: linear-gradient(rgba(224, 123, 44, .14), rgba(224, 123, 44, .14)), #fff; }
+.notice.map-alert.high { background: linear-gradient(rgba(217, 68, 63, .13), rgba(217, 68, 63, .13)), #fff; }
+.map-alert-open { flex: 1; min-width: 0; display: flex; gap: 10px; padding: 4px 6px; border: 0; background: none; text-align: left; cursor: pointer; }
 .empty { text-align: center; padding: 36px 16px; color: var(--ink-2); }
 .empty b { display: block; font-size: 40px; font-weight: 400; margin-bottom: 8px; }
 .photos { display: flex; gap: 8px; overflow-x: auto; }
