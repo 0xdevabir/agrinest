@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query } from "@nestjs/common";
+import { fetchAdvice } from "../clients/services";
 import { queryBool } from "../common/paths";
 import { eventOut, jsonValue } from "../common/presenters";
 import { DatabaseService } from "../database/database.service";
@@ -20,8 +21,17 @@ export class AdviceController {
     @Query("persist") persist?: string,
   ) {
     const field = await this.fields.require(fieldId);
-    const weather = await getWeather(field.lat, field.lon, queryBool(forceSeed, false));
-    const advice = buildAdvice(field.crop, field.sowingDate, weather);
+    const seed = queryBool(forceSeed, false);
+    const remote = await fetchAdvice({
+      crop: field.crop,
+      sowing_date: field.sowingDate,
+      lat: field.lat,
+      lon: field.lon,
+      district: field.farmer.district,
+      force_seed_weather: seed,
+    });
+    const advice =
+      remote ?? buildAdvice(field.crop, field.sowingDate, await getWeather(field.lat, field.lon, seed));
     const shouldPersist = queryBool(persist, true);
     const event = shouldPersist
       ? await this.db.event.create({ data: { fieldId, type: "advice", payload: jsonValue(advice) } })
@@ -34,4 +44,3 @@ export class AdviceController {
     };
   }
 }
-

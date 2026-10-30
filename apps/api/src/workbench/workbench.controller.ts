@@ -1,7 +1,9 @@
 import { Controller, Get, Param, Query } from "@nestjs/common";
+import { agronomyBody, fetchDesk } from "../clients/services";
 import { queryBool } from "../common/paths";
 import { asRecord } from "../common/presenters";
 import { DatabaseService } from "../database/database.service";
+import { marketDesk } from "../engines/market.engine";
 import { getWeather } from "../engines/weather.engine";
 import { buildWorkbench } from "../engines/workbench.engine";
 import { FieldsService } from "../fields/fields.service";
@@ -20,26 +22,56 @@ export class WorkbenchController {
       this.db.event.findMany({ where: { fieldId } }),
       this.db.listing.findMany({ where: { fieldId } }),
     ]);
-    const weather = await getWeather(field.lat, field.lon, queryBool(forceSeed, true));
-    return buildWorkbench({
-      crop: field.crop,
-      variety: field.variety,
-      areaHa: field.areaHa,
-      sowingDate: field.sowingDate,
-      district: field.farmer.district,
-      weather,
-      events: events.map((event) => ({
-        id: event.id,
-        type: event.type,
-        payload: asRecord(event.payload),
-        createdAt: event.createdAt,
-      })),
-      listings: listings.map((item) => ({
-        id: item.id,
-        quantityTon: item.quantityTon,
-        district: item.district,
-        crop: item.crop,
-      })),
-    });
+    const mapped = events.map((event) => ({
+      id: event.id,
+      type: event.type,
+      payload: asRecord(event.payload),
+      createdAt: event.createdAt,
+    }));
+    const listingRows = listings.map((item) => ({
+      id: item.id,
+      quantityTon: item.quantityTon,
+      district: item.district,
+      crop: item.crop,
+    }));
+    const seed = queryBool(forceSeed, true);
+    const desk = await fetchDesk(
+      agronomyBody({
+        crop: field.crop,
+        variety: field.variety,
+        areaHa: field.areaHa,
+        sowingDate: field.sowingDate,
+        district: field.farmer.district,
+        lat: field.lat,
+        lon: field.lon,
+        forceSeed: seed,
+        events: mapped,
+      }),
+    );
+    if (desk) {
+      const cap = Number(desk.yield.mid ?? 0);
+      return {
+        precision: desk.precision,
+        yield: desk.yield,
+        climate: desk.climate,
+        guardian: desk.guardian,
+        market: marketDesk(field.farmer.district, cap, listingRows),
+        services: { agronomy: "agronomy", market: "nest" },
+      };
+    }
+    const weather = await getWeather(field.lat, field.lon, seed);
+    return {
+      ...buildWorkbench({
+        crop: field.crop,
+        variety: field.variety,
+        areaHa: field.areaHa,
+        sowingDate: field.sowingDate,
+        district: field.farmer.district,
+        weather,
+        events: mapped,
+        listings: listingRows,
+      }),
+      services: { agronomy: "nest-fallback", market: "nest" },
+    };
   }
 }

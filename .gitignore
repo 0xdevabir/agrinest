@@ -3,17 +3,14 @@
 
 # deps / build
 node_modules/
-apps/web/dist/
 web/.next/
 apps/api/dist/
 libs/database/src/generated/
-apps/api/.venv/
 apps/api/agrisathi.db
 apps/api/uploads/
-__pycache__/
-*.pyc
 .DS_Store
 .env
-*.egg-info/
-.vite/
+.venv/
+
+
 

@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query } from "@nestjs/common";
+import { agronomyBody, fetchDesk } from "../clients/services";
 import { queryBool } from "../common/paths";
 import { asRecord, eventOut, farmerOut, fieldOut } from "../common/presenters";
 import { DatabaseService } from "../database/database.service";
@@ -20,15 +21,37 @@ export class DashboardController {
   async dashboard(@Param("fieldId") fieldId: string, @Query("force_seed_weather") forceSeed?: string) {
     const field = await this.fields.require(fieldId);
     const events = await this.db.event.findMany({ where: { fieldId }, orderBy: { createdAt: "desc" } });
-    const weather = await getWeather(field.lat, field.lon, queryBool(forceSeed, true));
-    const advice = buildAdvice(field.crop, field.sowingDate, weather);
-    const climate = buildClimateAlerts(weather, field.farmer.district);
-    const estimate = estimateYield(
-      field.crop,
-      field.variety,
-      field.areaHa,
-      events.map((event) => ({ type: event.type, payload: asRecord(event.payload), createdAt: event.createdAt })),
+    const mapped = events.map((event) => ({
+      id: event.id,
+      type: event.type,
+      payload: asRecord(event.payload),
+      createdAt: event.createdAt,
+    }));
+    const seed = queryBool(forceSeed, true);
+    const desk = await fetchDesk(
+      agronomyBody({
+        crop: field.crop,
+        variety: field.variety,
+        areaHa: field.areaHa,
+        sowingDate: field.sowingDate,
+        district: field.farmer.district,
+        lat: field.lat,
+        lon: field.lon,
+        forceSeed: seed,
+        events: mapped,
+      }),
     );
+    const weather = desk ? null : await getWeather(field.lat, field.lon, seed);
+    const advice = desk?.advice ?? buildAdvice(field.crop, field.sowingDate, weather!);
+    const climate = desk?.climate_alerts ?? buildClimateAlerts(weather!, field.farmer.district);
+    const estimate =
+      desk?.yield_estimate ??
+      estimateYield(
+        field.crop,
+        field.variety,
+        field.areaHa,
+        mapped.map((event) => ({ type: event.type, payload: event.payload, createdAt: event.createdAt })),
+      );
     const latest = events.find((event) => event.type === "diagnosis");
     return {
       farmer: farmerOut(field.farmer),
@@ -42,6 +65,7 @@ export class DashboardController {
       market: marketHint(field.farmer.district),
       latest_diagnosis: latest ? eventOut(latest) : null,
       events: events.slice(0, 20).map(eventOut),
+      services: { agronomy: desk?.service ?? "nest-fallback", market: "nest" },
     };
   }
 }

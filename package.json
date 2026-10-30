@@ -12,6 +12,8 @@
     "db:push": "npm run db:push --workspace @agrisathi/api",
     "dev:api": "npm run start:dev --workspace @agrisathi/api",
     "dev:web": "npm run dev --workspace web",
+    "dev:guardian": "apps/crop-guardian/.venv/bin/uvicorn app.main:app --app-dir apps/crop-guardian --host 127.0.0.1 --port 8011 --reload",
+    "dev:agronomy": "apps/agronomy/.venv/bin/uvicorn app.main:app --app-dir apps/agronomy --host 127.0.0.1 --port 8012 --reload",
     "seed": "curl -s -X POST http://127.0.0.1:8000/api/seed/rahim",
     "build:api": "npm run build --workspace @agrisathi/api",
     "build:web": "npm run build --workspace web"
@@ -23,3 +25,4 @@
     "sharp@0.34.5": true
   }
 }
+

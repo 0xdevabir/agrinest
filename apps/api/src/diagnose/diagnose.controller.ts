@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Param, Post, UploadedFile, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { jsonValue, eventOut } from "../common/presenters";
+import { classifyWithGuardian } from "../clients/services";
+import { eventOut, jsonValue } from "../common/presenters";
 import { DatabaseService } from "../database/database.service";
 import { backupClassify, classifyLeaf, confidenceThreshold, preparePhoto } from "../engines/disease.engine";
 import { FieldsService } from "../fields/fields.service";
@@ -24,10 +25,17 @@ export class DiagnoseController {
     if (file.buffer.length > 8_000_000) throw new BadRequestException("ছবি খুব বড়");
     const force = forceDisease || null;
     const photo = await preparePhoto(fieldId, file.buffer);
-    let result = await classifyLeaf(photo.bytes, file.originalname, force);
-    if (result.confidence < confidenceThreshold() || result.disease_id === "unknown") {
-      result = await backupClassify(photo.bytes);
-    }
+    const remote = await classifyWithGuardian(photo.bytes, file.originalname || "leaf.jpg", force);
+    const local = remote
+      ? null
+      : await (async () => {
+          let scored = await classifyLeaf(photo.bytes, file.originalname, force);
+          if (scored.confidence < confidenceThreshold() || scored.disease_id === "unknown") {
+            scored = await backupClassify(photo.bytes);
+          }
+          return { ...scored, service: "nest-fallback" };
+        })();
+    const result = remote ?? local;
     const event = await this.db.event.create({
       data: {
         fieldId,
@@ -51,3 +59,4 @@ export class DiagnoseController {
     return eventOut(event);
   }
 }
+

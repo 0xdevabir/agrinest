@@ -2,7 +2,7 @@
 name: agrisathi-platform
 description: >-
   Builds AgriSathi shared foundation — monorepo, Supabase Farmer/Field/Event
-  schema, FastAPI skeleton, React+Vite PWA shell, Bangla fonts, home dashboard
+  schema, NestJS API, Next.js PWA shell, Bangla fonts, home dashboard
   slots, shared OpenAPI types. Use when bootstrapping the repo, shared profile,
   auth, or cross-cutting infrastructure before feature work.
 ---
@@ -26,7 +26,7 @@ You own the **shared core** only. Do not implement disease ML, market UI, or yie
 2. CRUD: create farmer profile (Bangla labels) + one field
 3. Event append API: `{ type, payload, field_id }`
 4. Home dashboard shell with **five named slots** (Guardian, Precision, Climate, YieldMax, FarmMarket)
-5. Shared TS/Python types matching OpenAPI
+5. Shared TypeScript types matching the API contract
 6. Env samples: Supabase, LLM key, model path — no secrets committed
 7. Design tokens: CSS variables; avoid generic purple/AI-slop look; agrarian, readable outdoor UI
 

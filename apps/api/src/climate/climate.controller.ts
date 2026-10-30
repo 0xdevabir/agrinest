@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query } from "@nestjs/common";
+import { fetchClimate } from "../clients/services";
 import { queryBool } from "../common/paths";
 import { eventOut, jsonValue } from "../common/presenters";
 import { DatabaseService } from "../database/database.service";
@@ -20,8 +21,17 @@ export class ClimateController {
     @Query("persist") persist?: string,
   ) {
     const field = await this.fields.require(fieldId);
-    const weather = await getWeather(field.lat, field.lon, queryBool(forceSeed, false));
-    const built = buildClimateAlerts(weather, field.farmer.district);
+    const seed = queryBool(forceSeed, false);
+    const remote = await fetchClimate({
+      crop: field.crop,
+      sowing_date: field.sowingDate,
+      lat: field.lat,
+      lon: field.lon,
+      district: field.farmer.district,
+      force_seed_weather: seed,
+    });
+    const built =
+      remote ?? buildClimateAlerts(await getWeather(field.lat, field.lon, seed), field.farmer.district);
     const events = queryBool(persist, true)
       ? await Promise.all(
           built.alerts.map((alert) =>
@@ -32,4 +42,3 @@ export class ClimateController {
     return { ...built, events: events.map(eventOut) };
   }
 }
-

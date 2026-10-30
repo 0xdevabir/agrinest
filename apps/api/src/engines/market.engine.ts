@@ -110,3 +110,45 @@ export function priceSeries(district: string) {
       return { date, avg: Math.round(values.reduce((a, b) => a + b, 0) / values.length) };
     });
 }
+
+export function marketDesk(
+  district: string,
+  capTon: number,
+  listings: { id: string; quantityTon: number; district: string; crop: string }[],
+) {
+  const hint = marketHint(district);
+  const prices = hint.prices;
+  const best = prices.length ? prices.reduce((top, row) => (row.price_bdt > top.price_bdt ? row : top)) : null;
+  const series = priceSeries(district);
+  const todayAvg = series.length ? series[series.length - 1].avg : 0;
+  const window = series.slice(-7);
+  const mean7 = window.reduce((sum, row) => sum + row.avg, 0) / Math.max(1, window.length);
+  const quintals = capTon * 10;
+  const nowBdt = Math.round(quintals * todayAvg);
+  const waitBdt = Math.round(quintals * Math.max(mean7, todayAvg * 1.03));
+  const listed = listings.reduce((sum, item) => sum + Number(item.quantityTon || 0), 0);
+  return {
+    action: hint.action,
+    reason: { bn: hint.reason_bn, en: hint.reason_bn },
+    source: hint.source,
+    prices,
+    best,
+    series,
+    today_avg: Math.round(todayAvg),
+    mean7: Math.round(mean7),
+    now_bdt: nowBdt,
+    wait_bdt: waitBdt,
+    delta_bdt: waitBdt - nowBdt,
+    cap_ton: capTon,
+    listed_ton: Math.round(listed * 1000) / 1000,
+    remaining_ton: Math.round(Math.max(0, capTon - listed) * 1000) / 1000,
+    listings: listings.map((item) => ({
+      id: item.id,
+      quantity_ton: item.quantityTon,
+      district: item.district,
+      crop: item.crop,
+    })),
+    service: "nest",
+  };
+}
+

@@ -1,1 +1,0 @@
-"""AgriSathi API."""

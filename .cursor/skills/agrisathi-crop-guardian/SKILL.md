@@ -27,7 +27,7 @@ Outbreak map; Bangla TTS of steps.
 
 1. **Scope diseases to 4–6 rice classes** (blast, BLB, brown spot, sheath blight, …). Do not chase 38-class PlantVillage on day one.
 2. Train/fine-tune **EfficientNet-B0 or MobileNetV3**; preprocess 224×224; export weights into `apps/api`.
-3. FastAPI `POST /fields/{id}/diagnose` (multipart): resize → infer → KB lookup → optional LLM shorten to Bangla → insert Event.
+3. Nest `POST /fields/{id}/diagnose` (multipart): resize → infer → KB lookup → optional LLM shorten to Bangla → insert Event.
 4. **Backup path:** if conf < 0.45 or model error → vision LLM classifier with same JSON schema (`disease_id`, `confidence`, `source: "backup"`).
 5. In-memory cache of Rx KB; warm on startup.
 6. Frontend: one screen — shutter → result card (Bangla name, %, steps, disclaimer).
