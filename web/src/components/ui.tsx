@@ -133,7 +133,6 @@ export function TabBar() {
   const index = tabs.findIndex((tab) => tab.href === active)
   return (
     <nav className={`tabbar glass${index < 0 ? ' none' : ''}`} aria-label="Main" style={{ '--n': tabs.length, '--i': Math.max(index, 0) } as CSSProperties}>
-      <div className="side-brand"><span aria-hidden>🌾</span><b>AgriNest</b></div>
       {tabs.map((tab) => (
         <Link
           key={tab.href}
