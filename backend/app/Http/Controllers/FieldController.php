@@ -192,6 +192,7 @@ class FieldController extends Controller
         $polygon = Geo::polygon($points);
         abort_unless($polygon, 422, 'Boundary must be at least 3 points inside Bangladesh.');
         $ring = array_slice($polygon['coordinates'][0], 0, -1);
+        abort_if(Geo::selfIntersects($ring), 422, 'The boundary crosses itself. Please redraw it.');
         $acres = Geo::acres($ring);
         abort_if($acres < 0.005 || $acres > 2000, 422, 'That land size does not look right. Please redraw it.');
         [$lat, $lng] = Geo::center($ring);

@@ -163,6 +163,12 @@ class AgrinestFlowTest extends TestCase
         $this->postJson('/api/fields', ['name' => 'Far', 'points' => [[10, 10], [11, 10], [11, 11]]])->assertUnprocessable();
     }
 
+    public function test_boundary_that_crosses_itself_is_rejected(): void
+    {
+        Sanctum::actingAs($this->user('farmer'));
+        $this->postJson('/api/fields', ['name' => 'Bowtie', 'points' => [[90.40, 24.75], [90.41, 24.76], [90.41, 24.75], [90.40, 24.76]]])->assertUnprocessable();
+    }
+
     public function test_land_is_private_between_farmers_and_districts(): void
     {
         $field = $this->farmerField($this->user('farmer'));

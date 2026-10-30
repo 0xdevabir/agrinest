@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Empty, HealthPill, Segmented, Sheet, dateLabel, kg } from '@/components/ui'
+import { Empty, FlowDone, HealthPill, Segmented, Sheet, StepBar, StepNav, dateLabel, kg } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
 import type { Crop, Health, Localized } from '@/lib/types'
@@ -290,8 +290,11 @@ function TermsSheet({ title, subtitle, quantity, price, reference, onClose, onSu
   const [q, setQ] = useState(String(quantity))
   const [p, setP] = useState(String(price))
   const [note, setNote] = useState('')
+  const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const steps = [t('দর', 'Price'), t('যাচাই', 'Check')]
+  const total = <div className="card row between"><span className="sub">{t('মোট', 'Total')}</span><b style={{ fontSize: 20 }}>৳{num(Math.round(Number(q) * Number(p)) || 0)}</b></div>
 
   const submit = async () => {
     setBusy(true)
@@ -301,15 +304,27 @@ function TermsSheet({ title, subtitle, quantity, price, reference, onClose, onSu
 
   return (
     <Sheet title={title} subtitle={subtitle} onClose={onClose}>
-      <div className="grid-2">
-        <div><label className="lbl" htmlFor="q">{t('পরিমাণ (কেজি)', 'Quantity (kg)')}</label><input id="q" className="input" type="number" inputMode="decimal" min={1} max={quantity} value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <div><label className="lbl" htmlFor="p">{t('দাম (৳/কেজি)', 'Price (৳/kg)')}</label><input id="p" className="input" type="number" inputMode="decimal" min={1} value={p} onChange={(e) => setP(e.target.value)} /></div>
-      </div>
-      {reference != null && <div className="sub small">{t('আনুমানিক সাধারণ দর', 'Rough usual price')}: ৳{num(reference)}/{t('কেজি', 'kg')}</div>}
-      <div className="card row between"><span className="sub">{t('মোট', 'Total')}</span><b style={{ fontSize: 20 }}>৳{num(Math.round(Number(q) * Number(p)) || 0)}</b></div>
-      <input className="input" maxLength={500} placeholder={t('বার্তা (ঐচ্ছিক)', 'Message (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
-      {error && <div className="notice high" role="alert">{error}</div>}
-      <button className="btn block" disabled={busy || !(Number(q) >= 1) || !(Number(p) >= 1)} onClick={submit}>{busy ? '…' : t('পাঠান', 'Send')}</button>
+      {checking ? (
+        <>
+          <StepBar steps={steps} step={2} title={t('মিলিয়ে দেখে পাঠান', 'Check it, then send')} hint={t('অন্য পক্ষ মেনে নিতে, পাল্টা দর দিতে বা বন্ধ করতে পারবে। উত্তর "দরদাম"-এ আসবে।', 'The other side can accept, counter or close. Replies arrive in Deals.')} />
+          <div className="card row between"><span className="sub">{t('পরিমাণ ও দাম', 'Quantity and price')}</span><b>{num(Number(q))} {t('কেজি', 'kg')} · ৳{num(Number(p))}</b></div>
+          {total}
+          <input className="input" maxLength={500} placeholder={t('বার্তা (ঐচ্ছিক)', 'Message (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
+          {error && <div className="notice high" role="alert">{error}</div>}
+          <StepNav onBack={() => setChecking(false)} onNext={submit} busy={busy} label={`${t('পাঠান', 'Send')} →`} />
+        </>
+      ) : (
+        <>
+          <StepBar steps={steps} step={1} title={t('পরিমাণ ও দাম দিন', 'Set the quantity and price')} />
+          <div className="grid-2">
+            <div><label className="lbl" htmlFor="q">{t('পরিমাণ (কেজি)', 'Quantity (kg)')}</label><input id="q" className="input" type="number" inputMode="decimal" min={1} max={quantity} value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            <div><label className="lbl" htmlFor="p">{t('দাম (৳/কেজি)', 'Price (৳/kg)')}</label><input id="p" className="input" type="number" inputMode="decimal" min={1} value={p} onChange={(e) => setP(e.target.value)} /></div>
+          </div>
+          {reference != null && <div className="sub small">{t('আনুমানিক সাধারণ দর', 'Rough usual price')}: ৳{num(reference)}/{t('কেজি', 'kg')}</div>}
+          {total}
+          <StepNav onNext={() => setChecking(true)} disabled={!(Number(q) >= 1) || !(Number(p) >= 1)} />
+        </>
+      )}
     </Sheet>
   )
 }
@@ -321,32 +336,56 @@ function CreateSheet({ isFarmer, onClose, onDone }: { isFarmer: boolean; onClose
   const [q, setQ] = useState('')
   const [p, setP] = useState('')
   const [note, setNote] = useState('')
+  const [stage, setStage] = useState(1)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const chosen = data?.crops.find((c) => c.id === crop)
+  const steps = [t('ফসল', 'Crop'), t('দর', 'Price'), t('প্রকাশ', 'Publish')]
 
   const submit = async () => {
     setBusy(true)
     setError('')
     try {
       await api(isFarmer ? '/listings' : '/buy-posts', { body: { crop, quantity_kg: Number(q), price_per_kg: Number(p), note: note.trim() || null } })
-      await onDone()
+      setStage(4)
     } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
   }
 
   return (
-    <Sheet title={isFarmer ? t('ফসল বিক্রি করুন', 'Sell your crop') : t('কেনার পোস্ট দিন', 'Post a buy request')} onClose={onClose}>
-      <div className="chips" style={{ flexWrap: 'wrap' }}>
-        {(data?.crops ?? []).map((c) => <button key={c.id} className={`chip${crop === c.id ? ' on' : ''}`} aria-pressed={crop === c.id} onClick={() => { setCrop(c.id); if (!p) setP(String(c.reference_price)) }}>{c.emoji} {pick(c)}</button>)}
-      </div>
-      <div className="grid-2">
-        <div><label className="lbl" htmlFor="cq">{t('পরিমাণ (কেজি)', 'Quantity (kg)')}</label><input id="cq" className="input" type="number" inputMode="decimal" min={1} value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <div><label className="lbl" htmlFor="cp">{t('দাম (৳/কেজি)', 'Price (৳/kg)')}</label><input id="cp" className="input" type="number" inputMode="decimal" min={1} value={p} onChange={(e) => setP(e.target.value)} /></div>
-      </div>
-      {chosen && <div className="sub small">{t('আনুমানিক সাধারণ দর', 'Rough usual price')}: ৳{num(chosen.reference_price)}/{t('কেজি', 'kg')}. {t('আজকের বাজার যাচাই করুন।', "Check today's market.")}</div>}
-      <input className="input" maxLength={500} placeholder={t('বিস্তারিত (ঐচ্ছিক)', 'Details (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
-      {error && <div className="notice high" role="alert">{error}</div>}
-      <button className="btn block" disabled={busy || !crop || !(Number(q) >= 1) || !(Number(p) >= 1)} onClick={submit}>{busy ? '…' : t('প্রকাশ করুন', 'Publish')}</button>
+    <Sheet title={isFarmer ? t('ফসল বিক্রি করুন', 'Sell your crop') : t('কেনার পোস্ট দিন', 'Post a buy request')} onClose={stage === 4 ? onDone : onClose}>
+      {stage === 1 && (
+        <>
+          <StepBar steps={steps} step={1} title={isFarmer ? t('কোন ফসল বিক্রি করবেন?', 'Which crop are you selling?') : t('কোন ফসল কিনবেন?', 'Which crop do you want?')} hint={t('ফসলে ট্যাপ করুন', 'Tap the crop')} />
+          <div className="chips" style={{ flexWrap: 'wrap' }}>
+            {(data?.crops ?? []).map((c) => <button key={c.id} className={`chip${crop === c.id ? ' on' : ''}`} aria-pressed={crop === c.id} onClick={() => { setCrop(c.id); if (!p) setP(String(c.reference_price)); setStage(2) }}>{c.emoji} {pick(c)}</button>)}
+          </div>
+        </>
+      )}
+      {stage === 2 && (
+        <>
+          <StepBar steps={steps} step={2} title={`${chosen ? `${chosen.emoji} ${pick(chosen)}: ` : ''}${t('পরিমাণ ও দাম', 'quantity and price')}`} />
+          <div className="grid-2">
+            <div><label className="lbl" htmlFor="cq">{t('পরিমাণ (কেজি)', 'Quantity (kg)')}</label><input id="cq" className="input" type="number" inputMode="decimal" min={1} value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            <div><label className="lbl" htmlFor="cp">{t('দাম (৳/কেজি)', 'Price (৳/kg)')}</label><input id="cp" className="input" type="number" inputMode="decimal" min={1} value={p} onChange={(e) => setP(e.target.value)} /></div>
+          </div>
+          {chosen && <div className="sub small">{t('আনুমানিক সাধারণ দর', 'Rough usual price')}: ৳{num(chosen.reference_price)}/{t('কেজি', 'kg')}. {t('আজকের বাজার যাচাই করুন।', "Check today's market.")}</div>}
+          <StepNav onBack={() => setStage(1)} onNext={() => setStage(3)} disabled={!(Number(q) >= 1) || !(Number(p) >= 1)} />
+        </>
+      )}
+      {stage === 3 && (
+        <>
+          <StepBar steps={steps} step={3} title={t('মিলিয়ে দেখে প্রকাশ করুন', 'Check it, then publish')} hint={t('বিস্তারিত লেখা ঐচ্ছিক।', 'Details are optional.')} />
+          <div className="card row between"><span>{chosen?.emoji} {chosen && pick(chosen)} · {num(Number(q))} {t('কেজি', 'kg')} · ৳{num(Number(p))}</span><b>৳{num(Math.round(Number(q) * Number(p)))}</b></div>
+          <input className="input" maxLength={500} placeholder={t('বিস্তারিত (ঐচ্ছিক)', 'Details (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
+          {error && <div className="notice high" role="alert">{error}</div>}
+          <StepNav onBack={() => setStage(2)} onNext={submit} busy={busy} label={`${t('প্রকাশ করুন', 'Publish')} →`} />
+        </>
+      )}
+      {stage === 4 && (
+        <FlowDone icon="🎉" title={t('প্রকাশ হয়েছে', 'Published')} body={isFarmer ? t('ক্রেতারা এখন দর দিতে পারবেন। দর এলে "দরদাম"-এ দেখবেন।', 'Buyers can now bid. Bids arrive in Deals.') : t('কৃষকরা এখন প্রস্তাব দিতে পারবেন। প্রস্তাব এলে "দরদাম"-এ দেখবেন।', 'Farmers can now send offers. Offers arrive in Deals.')}>
+          <button className="btn block" onClick={onDone}>{t('ঠিক আছে', 'OK')}</button>
+        </FlowDone>
+      )}
     </Sheet>
   )
 }

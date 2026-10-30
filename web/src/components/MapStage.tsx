@@ -6,7 +6,10 @@ import { useApp } from '@/lib/app'
 import type { Field } from '@/lib/types'
 import { FarmMap, type MapHandle } from './FarmMap'
 import { FieldSheet, type FieldIntent } from './FieldSheet'
-import { Sheet, StepBar } from './ui'
+import { PlantSheet } from './actions'
+import { LandDrawHud } from './LandDrawHud'
+import { FlowDone, Sheet, StepBar, StepNav } from './ui'
+import { useLandDraft } from './useLandDraft'
 
 export type StageHandle = { open: (id: number, intent?: FieldIntent) => void; fitAll: () => void }
 
@@ -17,38 +20,31 @@ type Props = {
   showFarmer?: boolean
   drawing?: boolean
   onDrawingChange?: (v: boolean) => void
-  drawFarmerId?: number | null
-  drawFarmerName?: string
+  /** The agent draws for a farmer they chose in an earlier step. */
+  drawFarmer?: { id: number; name: string; village?: string | null } | null
+  /** Leaves the draw step for the step before it. Without one, the flow is cancelled. */
+  onDrawBack?: () => void
 }
 
-/** On-screen estimate only; the server computes the stored area. */
-function roughAcres(pts: number[][]) {
-  if (pts.length < 3) return 0
-  const latRad = (pts[0][1] * Math.PI) / 180
-  const mx = 111320 * Math.cos(latRad)
-  let sum = 0
-  pts.forEach((p, i) => {
-    const q = pts[(i + 1) % pts.length]
-    sum += p[0] * mx * (q[1] * 110540) - q[0] * mx * (p[1] * 110540)
-  })
-  return Math.abs(sum) / 2 / 4046.86
+export function addLandSteps(t: (bn: string, en: string) => string, forFarmer: boolean) {
+  return [...(forFarmer ? [t('কৃষক', 'Farmer')] : []), t('আঁকুন', 'Draw'), t('নাম', 'Name'), t('ফসল', 'Crop')]
 }
 
-export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ fields, onChange, children, showFarmer, drawing: adding, onDrawingChange, drawFarmerId, drawFarmerName }, ref) {
-  const { t, num, toast } = useApp()
+export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ fields, onChange, children, showFarmer, drawing: adding, onDrawingChange, drawFarmer, onDrawBack }, ref) {
+  const { t, num, toast, user } = useApp()
   const map = useRef<MapHandle>(null)
   const [selected, setSelected] = useState<{ id: number; intent?: FieldIntent } | null>(null)
   const [redrawId, setRedrawId] = useState<number | null>(null)
   const drawing = !!adding || redrawId !== null
-  // The agent picks a farmer first, so adding land has one more step for them.
-  const lead = drawFarmerId ? 1 : 0
-  const total = 3 + lead
-  const [points, setPoints] = useState<number[][]>([])
+  const steps = addLandSteps(t, !!drawFarmer)
+  const lead = drawFarmer ? 1 : 0
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<{ label: string; lat: number; lng: number }[]>([])
+  // The land just saved, while its flow finishes: first the crop, then what to do next.
+  const [added, setAdded] = useState<{ field: Field; planted?: boolean; ended?: boolean } | null>(null)
 
   const byId = (id: number) => fields.find((f) => f.id === id)
   useImperativeHandle(ref, () => ({
@@ -61,23 +57,32 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
   }))
 
   useEffect(() => {
-    if (!drawing) { setPoints([]); setResults([]); setQuery('') }
-  }, [drawing])
-
-  // Drawing happens against the satellite photo, so zoom close first.
-  useEffect(() => {
-    if (!drawing) return
-    const near = (redrawId !== null && byId(redrawId)) || fields[0]
-    if (near) map.current?.flyTo(near.lng, near.lat, 16.5)
-    else locate()
+    if (!drawing) { setResults([]); setQuery('') }
+    else if (drawFarmer?.village) setQuery(drawFarmer.village)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawing])
 
-  const draw = useMemo(() => (drawing ? { points, onAdd: (p: number[]) => setPoints((cur) => [...cur, p]) } : undefined), [drawing, points])
+  const redrawing = redrawId !== null ? byId(redrawId) : undefined
+  const initial = useMemo(() => redrawing?.boundary.coordinates[0].slice(0, -1) ?? null, [redrawing])
+  const draft = useLandDraft({
+    draftKey: drawing ? `${user?.id ?? 'me'}.${redrawId !== null ? `land-${redrawId}` : `new-${drawFarmer?.id ?? 'own'}`}` : null,
+    initial,
+    ghostId: redrawId,
+    fields,
+    // Drawing happens against the satellite photo, so zoom close first.
+    onStart: (start) => {
+      if (start.length) { map.current?.fitPoints(start); return }
+      const near = fields.find((f) => f.farmer?.id === drawFarmer?.id) || fields[0]
+      if (near) map.current?.flyTo(near.lng, near.lat, 16.5, 0)
+      else locate()
+    },
+    onFollow: (p) => map.current?.follow(p),
+  })
+  const { points } = draft
 
   const locate = () => {
     navigator.geolocation?.getCurrentPosition(
-      (pos) => map.current?.flyTo(pos.coords.longitude, pos.coords.latitude, 17),
+      (pos) => map.current?.flyTo(pos.coords.longitude, pos.coords.latitude, 17, 0),
       () => toast(t('লোকেশন পাওয়া যায়নি, গ্রামের নাম খুঁজুন', 'Location unavailable. Search your village instead.')),
     )
   }
@@ -96,13 +101,14 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
   const save = async () => {
     setBusy(true)
     try {
-      const data = await api<{ field: Field }>('/fields', { body: { name: name.trim(), points, ...(drawFarmerId ? { farmer_id: drawFarmerId } : {}) } })
+      const data = await api<{ field: Field }>('/fields', { body: { name: name.trim(), points, ...(drawFarmer ? { farmer_id: drawFarmer.id } : {}) } })
       setNaming(false)
       setName('')
+      draft.discard()
       onDrawingChange?.(false)
       await onChange()
-      toast(`🎉 ${t('জমি যোগ হয়েছে! এখন ফসল যোগ করুন', 'Land added! Now add the crop')} +${num(50)} XP`)
-      setSelected({ id: data.field.id, intent: 'plant' })
+      toast(`🎉 ${t('জমি সংরক্ষণ হয়েছে', 'Land saved')} +${num(50)} XP`)
+      setAdded({ field: data.field })
     } catch (e) {
       toast((e as Error).message)
     } finally {
@@ -119,6 +125,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
     setBusy(true)
     try {
       await api(`/fields/${redrawId}`, { method: 'PATCH', body: { points } })
+      draft.discard()
       await onChange()
       toast(`✅ ${t('জমির সীমানা হালনাগাদ হয়েছে', 'Land boundary updated')}`)
       endRedraw()
@@ -129,6 +136,18 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
     }
   }
 
+  const cancel = () => {
+    if (redrawId === null && onDrawBack) {
+      // Going back keeps the draft, so returning to this farmer picks it up again.
+      onDrawBack()
+      return
+    }
+    if (draft.dirty && !window.confirm(t('আঁকা জমি বাতিল করবেন?', 'Discard this drawing?'))) return
+    draft.discard()
+    if (redrawId !== null) endRedraw()
+    else onDrawingChange?.(false)
+  }
+
   return (
     <>
       <FarmMap
@@ -136,7 +155,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
         fields={fields}
         selectedId={selected?.id}
         showFarmer={showFarmer}
-        draw={draw}
+        draw={draft.mapDraw}
         onSelect={(f) => { map.current?.flyTo(f.lng, f.lat); setSelected({ id: f.id }) }}
       />
 
@@ -152,42 +171,61 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
             {results.length > 0 && (
               <div className="group">
                 {results.map((r) => (
-                  <button key={r.label} className="cell" onClick={() => { map.current?.flyTo(r.lng, r.lat, 16.5); setResults([]) }}>
+                  <button key={r.label} className="cell" onClick={() => { map.current?.flyTo(r.lng, r.lat, 16.5, 0); setResults([]) }}>
                     <span className="grow truncate small">{r.label}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <div className="draw-hint steps glass" style={{ top: 'calc(env(safe-area-inset-top) + 124px)' }}>
-            {redrawId !== null
-              ? (points.length < 3 ? t('নতুন সীমানার প্রতিটি কোনায় ট্যাপ করুন', 'Tap each corner of the new boundary') : `≈ ${num(Math.round(roughAcres(points) * 100) / 100)} ${t('একর', 'acres')} · ${t('ঠিক থাকলে "সংরক্ষণ" চাপুন', 'Press "Save" if it looks right')}`)
-              : <StepBar
-                  step={1 + lead}
-                  total={total}
-                  title={t('জমি আঁকুন', 'Draw the land')}
-                  hint={points.length < 3
-                    ? `${drawFarmerName ? `${drawFarmerName}: ` : ''}${t(`জমির প্রতিটি কোনায় ট্যাপ করুন (কমপক্ষে ৩টি) · ${num(points.length)} দেওয়া হয়েছে`, `Tap each corner of the land (at least 3) · ${points.length} placed`)}`
-                    : `≈ ${num(Math.round(roughAcres(points) * 100) / 100)} ${t('একর', 'acres')} · ${t('ঠিক থাকলে "পরের ধাপ" চাপুন', 'Looks right? Press "Next"')}`}
-                />}
-          </div>
-          <div className="hud-bottom" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)', padding: '0 12px' }}>
-            <div className="glass row" style={{ padding: 8, borderRadius: 20, maxWidth: 480, margin: '0 auto' }}>
-              <button className="btn soft small grow" style={{ minHeight: 46 }} onClick={() => (redrawId !== null ? endRedraw() : onDrawingChange?.(false))}>{t('বাতিল', 'Cancel')}</button>
-              <button className="btn soft small grow" style={{ minHeight: 46 }} disabled={!points.length} onClick={() => setPoints(points.slice(0, -1))}>↩︎ {t('মুছুন', 'Undo')}</button>
-              {redrawId !== null
-                ? <button className="btn small grow" style={{ minHeight: 46 }} disabled={busy || points.length < 3} onClick={saveRedraw}>{busy ? '…' : t('সংরক্ষণ', 'Save')}</button>
-                : <button className="btn small grow" style={{ minHeight: 46 }} disabled={points.length < 3} onClick={() => setNaming(true)}>{t('পরের ধাপ', 'Next')}</button>}
-            </div>
-          </div>
+          <LandDrawHud
+            draft={draft}
+            step={redrawId !== null ? null : { steps, at: 1 + lead }}
+            title={drawFarmer ? t(`${drawFarmer.name}-এর জমি আঁকুন`, `Draw ${drawFarmer.name}'s land`) : t('জমি আঁকুন', 'Draw the land')}
+            hideHint={results.length > 0}
+            busy={busy}
+            cancelLabel={redrawId === null && onDrawBack ? `← ${t('পেছনে', 'Back')}` : t('বাতিল', 'Cancel')}
+            doneLabel={redrawId !== null ? t('সংরক্ষণ', 'Save') : t('পরের ধাপ', 'Next')}
+            canFinish={points.length >= 3 && !draft.issue && (redrawId === null || draft.dirty)}
+            onDone={() => { draft.close(); if (redrawId !== null) saveRedraw(); else setNaming(true) }}
+            onCancel={cancel}
+            onFit={() => map.current?.fitPoints(points)}
+          />
         </>
       )}
 
       {naming && (
         <Sheet title={t('জমির নাম দিন', 'Name this land')} onClose={() => setNaming(false)}>
-          <StepBar step={2 + lead} total={total} title={t('নাম দিন', 'Name it')} hint={t('চেনার জন্য একটি নাম দিন, তারপর সংরক্ষণ করুন', 'Give it a name you will recognise, then save')} />
+          <StepBar steps={steps} step={2 + lead} title={t('জমির একটি নাম দিন', 'Give the land a name')} hint={t('যে নামে সহজে চেনা যায়। এরপর ফসলের তথ্য দেবেন।', 'One that is easy to recognise. You will add the crop next.')} />
           <input className="input" autoFocus maxLength={80} placeholder={t('যেমন: পুকুর পাড়ের জমি', 'e.g. Pond-side plot')} value={name} onChange={(e) => setName(e.target.value)} />
-          <button className="btn block" disabled={busy || !name.trim()} onClick={save}>{busy ? '…' : t('জমি সংরক্ষণ করুন', 'Save land')}</button>
+          <StepNav onBack={() => setNaming(false)} onNext={save} disabled={!name.trim()} busy={busy} label={`${t('সংরক্ষণ করে পরের ধাপ', 'Save and continue')} →`} />
+        </Sheet>
+      )}
+
+      {added && !added.ended && (
+        <PlantSheet
+          field={added.field}
+          flow={{ steps, step: 3 + lead }}
+          onClose={() => setAdded({ ...added, ended: true })}
+          onDone={async () => { await onChange(); setAdded({ ...added, planted: true, ended: true }) }}
+        />
+      )}
+
+      {added?.ended && (
+        <Sheet title={t('জমি যোগ হয়েছে', 'Land added')} subtitle={added.field.name} onClose={() => setAdded(null)}>
+          <FlowDone
+            icon={added.planted ? '🌱' : '✅'}
+            title={added.planted ? t('জমি ও ফসল প্রস্তুত!', 'Land and crop are set!') : t('জমি সংরক্ষণ হয়েছে', 'The land is saved')}
+            body={added.planted
+              ? t('এখন ফসলের ছবি পাঠান, যাতে ফসলের অবস্থা দেখা যায়।', 'Now send crop photos so its health can be checked.')
+              : t('ফসল লাগালে এই জমিতে ট্যাপ করে তথ্য দিন।', 'When a crop is planted, tap this land on the map to add it.')}
+          >
+            {added.planted
+              ? <button className="btn block" onClick={() => { setSelected({ id: added.field.id, intent: 'scan' }); setAdded(null) }}>📸 {t('ছবি পাঠান', 'Send photos')}</button>
+              : <button className="btn block" onClick={() => { setSelected({ id: added.field.id }); setAdded(null) }}>{t('জমিটি দেখুন', 'Open this land')}</button>}
+            <button className="btn soft block" onClick={() => { setAdded(null); onDrawingChange?.(true) }}>➕ {drawFarmer ? t(`${drawFarmer.name}-এর আরেকটি জমি`, `Another land for ${drawFarmer.name}`) : t('আরেকটি জমি যোগ করুন', 'Add another land')}</button>
+            <button className="btn soft block" onClick={() => setAdded(null)}>{t('এখন শেষ', 'Done for now')}</button>
+          </FlowDone>
         </Sheet>
       )}
 

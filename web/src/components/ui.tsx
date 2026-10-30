@@ -35,17 +35,46 @@ export function Sheet({ title, subtitle, onClose, children, overMap }: { title: 
   )
 }
 
-/** Shows where the user is in a multi-step flow and what to do next. */
-export function StepBar({ step, total, title, hint }: { step: number; total: number; title: ReactNode; hint?: ReactNode }) {
-  const { t, num } = useApp()
+/** Shows every step of a flow by name, where the user is, and what to do right now. */
+export function StepBar({ steps, step, title, hint }: { steps: string[]; step: number; title: ReactNode; hint?: ReactNode }) {
+  const { num } = useApp()
   return (
     <div className="stepbar">
-      <div className="dots" aria-hidden>{Array.from({ length: total }, (_, i) => <i key={i} className={i + 1 < step ? 'done' : i + 1 === step ? 'now' : ''} />)}</div>
-      <div className="grow">
-        <b>{t('ধাপ', 'Step')} {num(step)}/{num(total)} · {title}</b>
-        {hint && <div className="sub small">{hint}</div>}
-      </div>
+      <ol>
+        {steps.map((label, i) => (
+          <li key={label} className={i + 1 < step ? 'done' : i + 1 === step ? 'now' : ''} aria-current={i + 1 === step ? 'step' : undefined}>
+            <i aria-hidden>{i + 1 < step ? '✓' : num(i + 1)}</i>{label}
+          </li>
+        ))}
+      </ol>
+      <b>{title}</b>
+      {hint && <div className="sub small">{hint}</div>}
     </div>
+  )
+}
+
+/** Back and forward controls for one step of a flow. The first step has nowhere to go back to. */
+export function StepNav({ onBack, onNext, label, disabled, busy }: { onBack?: () => void; onNext: () => void; label?: ReactNode; disabled?: boolean; busy?: boolean }) {
+  const { t } = useApp()
+  return (
+    <div className="row">
+      {onBack && <button type="button" className="btn soft" disabled={busy} onClick={onBack}>← {t('পেছনে', 'Back')}</button>}
+      <button type="button" className="btn grow" disabled={disabled || busy} onClick={onNext}>{busy ? '…' : label ?? `${t('পরের ধাপ', 'Next')} →`}</button>
+    </div>
+  )
+}
+
+/** Ends a flow: says what just happened and offers the next thing to do. */
+export function FlowDone({ icon, title, body, children }: { icon: string; title: ReactNode; body?: ReactNode; children: ReactNode }) {
+  return (
+    <>
+      <div className="flow-done">
+        <div aria-hidden>{icon}</div>
+        <h3>{title}</h3>
+        {body && <p className="sub">{body}</p>}
+      </div>
+      {children}
+    </>
   )
 }
 
@@ -58,7 +87,7 @@ export function HealthPill({ status }: { status: Health }) {
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
   return (
     <div className="seg" role="tablist">
-      {options.map((o) => <button key={o.id} role="tab" aria-selected={o.id === value} className={o.id === value ? 'on' : ''} onClick={() => onChange(o.id)}>{o.label}</button>)}
+      {options.map((o) => <button key={o.id} type="button" role="tab" aria-selected={o.id === value} className={o.id === value ? 'on' : ''} onClick={() => onChange(o.id)}>{o.label}</button>)}
     </div>
   )
 }

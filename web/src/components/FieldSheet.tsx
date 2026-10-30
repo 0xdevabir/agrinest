@@ -217,10 +217,10 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
         )}
       </Sheet>
 
-      {f && (action === 'plant' || action === 'edit-crop') && <PlantSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
+      {f && (action === 'plant' || action === 'edit-crop') && <PlantSheet field={f} onClose={() => setAction(null)} onDone={updated} onPhotos={async () => { await updated(); setAction('scan') }} />}
       {f && action === 'edit-land' && <EditLandSheet field={f} onClose={() => setAction(null)} onDone={updated} onRedraw={onRedraw} onRemove={removeLand} />}
       {f && action === 'scan' && <ScanSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
-      {f && action === 'harvest' && <HarvestSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
+      {f && action === 'harvest' && <HarvestSheet field={f} onClose={() => setAction(null)} onDone={updated} onPlant={async () => { await updated(); setAction('plant') }} />}
       {f && action === 'guidance' && <GuidanceSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
       {reviewing && <ReviewSheet scan={reviewing} onClose={() => setReviewing(null)} onDone={updated} />}
     </>

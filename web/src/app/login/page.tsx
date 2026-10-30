@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 import { FieldBackdrop } from '@/components/FieldBackdrop'
-import { Segmented } from '@/components/ui'
+import { Segmented, StepBar } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useApp, type User } from '@/lib/app'
 
@@ -23,6 +23,8 @@ export default function LoginPage() {
   const [form, setForm] = useState({ name: '', phone: '', password: '', district: '', village: '', organization: '', buyer_type: 'broker' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [step, setStep] = useState(1)
+  const steps = [t('ধরন', 'Type'), t('তথ্য', 'Details'), t('এলাকা', 'Area')]
 
   useEffect(() => { if (ready && user) router.replace('/') }, [ready, user, router])
 
@@ -45,6 +47,7 @@ export default function LoginPage() {
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (mode === 'login') enter('/auth/login', { phone: form.phone, password: form.password })
+    else if (step < 3) setStep(step + 1)
     else enter('/auth/register', { ...form, role, buyer_type: role === 'buyer' ? form.buyer_type : null })
   }
 
@@ -61,17 +64,30 @@ export default function LoginPage() {
       </div>
 
       <form className="login-card card stack" onSubmit={submit} style={{ marginTop: 24 }}>
-        <Segmented value={mode} onChange={(m) => { setMode(m); setError('') }} options={[{ id: 'login', label: t('প্রবেশ', 'Sign in') }, { id: 'register', label: t('নতুন অ্যাকাউন্ট', 'New account') }]} />
-        {mode === 'register' && (
+        <Segmented value={mode} onChange={(m) => { setMode(m); setStep(1); setError('') }} options={[{ id: 'login', label: t('প্রবেশ', 'Sign in') }, { id: 'register', label: t('নতুন অ্যাকাউন্ট', 'New account') }]} />
+        {mode === 'login' && (
           <>
-            <Segmented value={role} onChange={setRole} options={[{ id: 'farmer', label: t('আমি কৃষক', "I'm a farmer") }, { id: 'buyer', label: t('আমি ক্রেতা', "I'm a buyer") }]} />
-            <input className="input" required placeholder={t('আপনার নাম', 'Your name')} autoComplete="name" value={form.name} onChange={set('name')} />
+            <input className="input" required inputMode="tel" placeholder={t('মোবাইল নম্বর', 'Mobile number')} autoComplete="tel" value={form.phone} onChange={set('phone')} />
+            <input className="input" required type="password" placeholder={t('পাসওয়ার্ড', 'Password')} autoComplete="current-password" value={form.password} onChange={set('password')} />
           </>
         )}
-        <input className="input" required inputMode="tel" placeholder={t('মোবাইল নম্বর', 'Mobile number')} autoComplete="tel" value={form.phone} onChange={set('phone')} />
-        <input className="input" required type="password" minLength={mode === 'register' ? 6 : undefined} placeholder={t('পাসওয়ার্ড', 'Password')} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={form.password} onChange={set('password')} />
-        {mode === 'register' && (
+        {mode === 'register' && step === 1 && (
           <>
+            <StepBar steps={steps} step={1} title={t('আপনি কে?', 'Who are you?')} hint={t('আপনার অ্যাকাউন্ট কী কাজে লাগবে তা বেছে নিন', 'Choose what you will use the account for')} />
+            <Segmented value={role} onChange={setRole} options={[{ id: 'farmer', label: t('আমি কৃষক', "I'm a farmer") }, { id: 'buyer', label: t('আমি ক্রেতা', "I'm a buyer") }]} />
+          </>
+        )}
+        {mode === 'register' && step === 2 && (
+          <>
+            <StepBar steps={steps} step={2} title={t('আপনার তথ্য দিন', 'Enter your details')} hint={t('মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে পরে প্রবেশ করবেন', 'You will sign in with this mobile number and password')} />
+            <input className="input" required placeholder={t('আপনার নাম', 'Your name')} autoComplete="name" value={form.name} onChange={set('name')} />
+            <input className="input" required inputMode="tel" placeholder={t('মোবাইল নম্বর', 'Mobile number')} autoComplete="tel" value={form.phone} onChange={set('phone')} />
+            <input className="input" required type="password" minLength={6} placeholder={t('পাসওয়ার্ড', 'Password')} autoComplete="new-password" value={form.password} onChange={set('password')} />
+          </>
+        )}
+        {mode === 'register' && step === 3 && (
+          <>
+            <StepBar steps={steps} step={3} title={role === 'farmer' ? t('আপনার এলাকা', 'Your area') : t('আপনার ব্যবসা', 'Your business')} hint={role === 'farmer' ? t('এরপর মানচিত্রে আপনার প্রথম জমি আঁকবেন', 'Next you will draw your first land on the map') : t('এরপর বাজারে ফসলের দর দেখবেন', 'Next you will see crop prices in the market')} />
             <input className="input" required placeholder={t('জেলা', 'District')} value={form.district} onChange={set('district')} />
             {role === 'farmer' && <input className="input" placeholder={t('গ্রাম', 'Village')} value={form.village} onChange={set('village')} />}
             {role === 'buyer' && (
@@ -87,7 +103,10 @@ export default function LoginPage() {
           </>
         )}
         {error && <div className="notice high" role="alert">{error}</div>}
-        <button className="btn block" disabled={busy}>{busy ? '…' : mode === 'login' ? t('প্রবেশ করুন', 'Sign in') : t('শুরু করুন', 'Get started')}</button>
+        <div className="row">
+          {mode === 'register' && step > 1 && <button type="button" className="btn soft" disabled={busy} onClick={() => { setStep(step - 1); setError('') }}>← {t('পেছনে', 'Back')}</button>}
+          <button className="btn grow" disabled={busy}>{busy ? '…' : mode === 'login' ? t('প্রবেশ করুন', 'Sign in') : step < 3 ? `${t('পরের ধাপ', 'Next')} →` : t('শুরু করুন', 'Get started')}</button>
+        </div>
 
         {mode === 'login' && (
           <div>

@@ -180,13 +180,28 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .crop-marker.dense .crop-orb { width: 40px; height: 40px; font-size: 19px; padding: 3px; }
 .crop-label { margin-top: 4px; padding: 2px 9px; border-radius: 99px; background: rgba(20, 25, 25, .72); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 @keyframes ping { from { transform: scale(.9); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
-.draw-dot { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 4px solid #5f7a57; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); }
+.edge-tag { padding: 1px 7px; border-radius: 99px; background: rgba(16, 32, 26, .78); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.draw-tools { position: fixed; z-index: 10; right: 12px; top: calc(env(safe-area-inset-top) + 212px); display: flex; flex-direction: column; gap: 6px; }
+.draw-tools .round { width: 40px; height: 40px; font-size: 18px; }
+.draw-tools .round:disabled { opacity: .6; cursor: default; }
+.draw-panel { display: flex; flex-direction: column; gap: 8px; padding: 8px; border-radius: 20px; max-width: 480px; margin: 0 auto; }
+.draw-stats { display: flex; justify-content: space-around; gap: 8px; padding: 2px 4px; font-size: 13px; text-align: center; }
+.draw-warn { padding: 6px 10px; border-radius: 11px; background: rgba(245, 183, 0, .22); font-weight: 600; }
+.draw-hint.bad { box-shadow: 0 0 0 2px var(--urgent), 0 6px 24px rgba(20, 25, 25, 0.14); }
 .draw-hint { position: fixed; z-index: 10; top: calc(env(safe-area-inset-top) + 72px); left: calc(50% + var(--side) / 2); transform: translateX(-50%); border-radius: 99px; padding: 8px 16px; font-size: 14px; font-weight: 600; white-space: nowrap; }
-.stepbar { display: flex; align-items: center; gap: 10px; }
-.stepbar .dots { display: flex; gap: 4px; flex: none; }
-.stepbar .dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(120, 130, 120, .35); }
-.stepbar .dots i.done { background: #5f7a57; }
-.stepbar .dots i.now { background: #5f7a57; width: 22px; border-radius: 99px; }
+.stepbar { display: flex; flex-direction: column; gap: 2px; }
+.stepbar b { font-size: 17px; }
+.stepbar ol { list-style: none; display: flex; margin: 0 0 8px; padding: 0; }
+.stepbar li { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; font-weight: 500; color: var(--ink-2); text-align: center; }
+.stepbar li i { position: relative; z-index: 1; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 700; background: var(--line); }
+.stepbar li + li::before { content: ""; position: absolute; top: 11px; right: 50%; width: 100%; height: 2px; background: var(--line); }
+.stepbar li.done i, .stepbar li.now i { background: #5f7a57; color: #fff; }
+.stepbar li.done + li::before { background: #5f7a57; }
+.stepbar li.now { color: var(--ink); font-weight: 700; }
+.flow-done { text-align: center; padding: 8px 0; }
+.flow-done > div { font-size: 52px; line-height: 1.2; }
+.flow-done h3 { font-size: 20px; font-weight: 700; margin: 4px 0; }
+.flow-done p { margin: 0; }
 .draw-hint.steps { white-space: normal; width: min(92vw, 420px); border-radius: 18px; }
 .maplibregl-ctrl-attrib { font-size: 10px; opacity: .7; }
 .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { display: none; }

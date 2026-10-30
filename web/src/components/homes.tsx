@@ -1,12 +1,12 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
 import { HEALTH, type Field, type Health, type Localized } from '@/lib/types'
-import { MapStage, type StageHandle } from './MapStage'
+import { FarmerForm } from './actions'
+import { MapStage, addLandSteps, type StageHandle } from './MapStage'
 import { TabGlyph } from './tab-icons'
-import Link from 'next/link'
 import { Sheet, StepBar, kg } from './ui'
 
 type Level = { level: number; xp: number; floor: number; next: number; pct: number }
@@ -138,30 +138,61 @@ export function AgentHome() {
   const [drawing, setDrawing] = useState(false)
   const [farmerId, setFarmerId] = useState<number | null>(null)
   const [picking, setPicking] = useState(false)
+  const [registering, setRegistering] = useState(false)
+  const steps = addLandSteps(t, true)
+
+  // The Farmers page sends the agent here to draw land for the farmer they chose.
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get('addLandFor'))
+    if (!id) return
+    window.history.replaceState(null, '', '/')
+    setFarmerId(id)
+    setDrawing(true)
+  }, [])
+
+  const draw = (id: number) => { setFarmerId(id); setPicking(false); setRegistering(false); setDrawing(true) }
+  const farmer = data?.farmers.find((f) => f.id === farmerId)
+
+  // A link can name a farmer who is not this agent's; land must never be drawn with no owner.
+  useEffect(() => {
+    if (data && farmerId && !farmer) { setFarmerId(null); setDrawing(false) }
+  }, [data, farmerId, farmer])
 
   return (
-    <MapStage ref={stage} fields={data?.fields ?? []} onChange={reload} showFarmer drawing={drawing} onDrawingChange={setDrawing} drawFarmerId={farmerId} drawFarmerName={data?.farmers.find((f) => f.id === farmerId)?.name}>
+    <MapStage ref={stage} fields={data?.fields ?? []} onChange={reload} showFarmer drawing={drawing} onDrawingChange={setDrawing} drawFarmer={farmer} onDrawBack={() => { setDrawing(false); setPicking(true) }}>
       <div className="hud-top">
         <div className="glass hud-pill grow row between">
           <div><b>{t('আজকের ভিজিট', "Today's visits")}</b><div className="sub small">{num(data?.stats.due ?? 0)} {t('জমি বাকি', data?.stats.due === 1 ? 'land due' : 'lands due')} · {num(data?.stats.scans_today ?? 0)} {t('স্ক্যান হয়েছে', 'scanned')}</div></div>
-          <button className="btn small" onClick={() => setPicking(!picking)}>➕ {t('জমি', 'Land')}</button>
+          <button className="btn small" onClick={() => setPicking(true)}>➕ {t('জমি যোগ করুন', 'Add land')}</button>
         </div>
       </div>
 
       {picking && (
-        <Sheet overMap title={t('জমি যোগ করুন', 'Add land')} onClose={() => setPicking(false)}>
-          <StepBar step={1} total={4} title={t('কৃষক বেছে নিন', 'Choose the farmer')} hint={t('কার জমি? নাম ট্যাপ করুন, তারপর মানচিত্রে জমি আঁকবেন', 'Whose land is it? Tap a name, then draw it on the map')} />
-          <div className="group">
-            {(data?.farmers ?? []).map((f) => (
-              <button key={f.id} className="cell" onClick={() => { setFarmerId(f.id); setPicking(false); setDrawing(true) }}>
-                <span className="icon-tile" aria-hidden>🧑‍🌾</span>
-                <span className="grow"><b>{f.name}</b><div className="sub small truncate">{[f.village, `${num(f.fields_count)} ${t('টি জমি', 'lands')}`].filter(Boolean).join(' · ')}</div></span>
-                <span aria-hidden>›</span>
-              </button>
-            ))}
-          </div>
-          {data && !data.farmers.length && <div className="sub">{t('এখনো কোনো কৃষক নেই। আগে কৃষক নিবন্ধন করুন, তারপর জমি যোগ করুন।', 'No farmers yet. Register a farmer first, then add their land.')}</div>}
-          <Link href="/farmers" className="btn soft block">➕ {t('নতুন কৃষক নিবন্ধন করুন', 'Register a new farmer')}</Link>
+        <Sheet overMap title={t('নতুন জমি যোগ করুন', 'Add new land')} onClose={() => { setPicking(false); setRegistering(false) }}>
+          {registering ? (
+            <>
+              <StepBar steps={steps} step={1} title={t('নতুন কৃষকের তথ্য দিন', "Enter the new farmer's details")} hint={t('এরপর মানচিত্রে তাঁর জমি আঁকবেন', 'Next you will draw their land on the map')} />
+              <FarmerForm label={`${t('যোগ করে জমি আঁকুন', 'Add and draw land')} →`} onBack={() => setRegistering(false)} onDone={async (f) => { await reload(); draw(f.id) }} />
+            </>
+          ) : (
+            <>
+              <StepBar steps={steps} step={1} title={t('এই জমি কোন কৃষকের?', 'Whose land is this?')} hint={t('কৃষকের নামে ট্যাপ করুন। এরপর মানচিত্রে জমি আঁকবেন।', "Tap the farmer's name. Next you will draw the land on the map.")} />
+              {!data && <div className="skeleton" style={{ height: 120 }} />}
+              {data && !data.farmers.length && <div className="sub">{t('এখনো কোনো কৃষক নেই। প্রথমে নিচের বোতাম থেকে কৃষক যোগ করুন।', 'You have no farmers yet. Add one with the button below first.')}</div>}
+              {data && data.farmers.length > 0 && (
+                <div className="group">
+                  {data.farmers.map((f) => (
+                    <button key={f.id} className="cell" onClick={() => draw(f.id)}>
+                      <span className="icon-tile" aria-hidden>🧑‍🌾</span>
+                      <span className="grow"><b>{f.name}</b><div className="sub small truncate">{[f.village, `${num(f.fields_count)} ${t('টি জমি', 'lands')}`].filter(Boolean).join(' · ')}</div></span>
+                      <span aria-hidden>›</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button className="btn soft block" onClick={() => setRegistering(true)}>➕ {t('তালিকায় নেই? নতুন কৃষক যোগ করুন', 'Not listed? Add a new farmer')}</button>
+            </>
+          )}
         </Sheet>
       )}
       {!picking && (
