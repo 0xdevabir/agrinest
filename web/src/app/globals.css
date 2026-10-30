@@ -23,7 +23,6 @@
   --r-md: 14px;
   --shadow: 0 12px 40px rgba(20, 25, 25, 0.16);
   --spring: cubic-bezier(0.32, 0.72, 0, 1);
-  --side: 0px;
   color-scheme: light;
 }
 
@@ -97,29 +96,11 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .tabbar a:active .tab-ico { transform: scale(.88); }
 .tab-ico { display: grid; place-items: center; width: 22px; height: 22px; flex: none; transition: transform .2s var(--spring); }
 .tab-ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-.side-brand { display: none; }
 .tabbar a:focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
 
-/* From a desk the tab bar becomes a green sidebar; everything fixed to the screen starts after it. */
 @media (min-width: 900px) {
-  :root { --side: 92px; }
-  .app-main { padding-left: var(--side); }
-  .tabbar { left: 0; top: 0; bottom: 0; transform: none; width: var(--side); flex-direction: column; gap: 6px; padding: 16px 8px; border-radius: 0; background: var(--sage); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .tabbar::before { display: none; }
-  .tabbar a { flex: none; padding: 10px 2px; border-radius: 14px; font-size: 12px; text-align: center; color: var(--on-sage); }
-  .tabbar a:not(.on):hover { background: rgba(255, 255, 255, .14); }
-  .tabbar a.on { background: var(--card); color: var(--sage); }
-  .tabbar a:focus-visible { outline-color: #fff; }
-  .side-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; font-size: 26px; color: var(--on-sage); }
-  .side-brand b { display: none; font-size: 20px; }
+  .tabbar a:not(.on):hover { color: var(--ink); }
   .market-hero .btn { min-height: 50px; }
-}
-@media (min-width: 1400px) {
-  :root { --side: 232px; }
-  .tabbar { padding: 20px 14px; }
-  .side-brand { justify-content: flex-start; padding: 0 12px; }
-  .side-brand b { display: block; }
-  .tabbar a { flex-direction: row; gap: 12px; padding: 12px; font-size: 15px; text-align: left; }
 }
 
 /* Sheet */
@@ -142,12 +123,12 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 
 /* Map game */
 /* Two classes: MapLibre's own stylesheet sets position: relative on the same element. */
-.map-root.maplibregl-map { position: fixed; inset: 0 0 0 var(--side); background: #e6ebe3; }
+.map-root.maplibregl-map { position: fixed; inset: 0; background: #e6ebe3; }
 .map-root .maplibregl-canvas { outline: 0; }
-.hud-top { position: fixed; z-index: 10; top: calc(env(safe-area-inset-top) + 12px); left: calc(var(--side) + 12px); right: 12px; display: flex; gap: 8px; align-items: flex-start; pointer-events: none; }
+.hud-top { position: fixed; z-index: 10; top: calc(env(safe-area-inset-top) + 12px); left: 12px; right: 12px; display: flex; gap: 8px; align-items: flex-start; pointer-events: none; }
 .hud-top > * { pointer-events: auto; }
 .hud-pill { border-radius: 22px; padding: 8px 12px; }
-.hud-bottom { position: fixed; z-index: 10; left: var(--side); right: 0; bottom: calc(env(safe-area-inset-bottom) + 90px); pointer-events: none; }
+.hud-bottom { position: fixed; z-index: 10; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 90px); pointer-events: none; }
 .hud-bottom > * { pointer-events: auto; }
 .quests { display: flex; gap: 10px; overflow-x: auto; padding: 4px 12px; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .quests::-webkit-scrollbar { display: none; }
@@ -158,11 +139,11 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .lands-btn { min-height: 44px; padding: 0 14px; font-size: 15px; box-shadow: 0 6px 18px rgba(30, 45, 27, .32); }
 .lands-count { min-width: 22px; padding: 1px 6px; border-radius: 99px; background: var(--on-sage); color: var(--sage); font-size: 13px; font-weight: 700; text-align: center; }
 
-.land-rail { position: fixed; z-index: 10; left: var(--side); right: 0; bottom: calc(env(safe-area-inset-bottom) + 90px); display: flex; flex-direction: column; gap: 6px; }
+.land-rail { position: fixed; z-index: 10; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 90px); display: flex; flex-direction: column; gap: 6px; }
 @media (min-width: 900px) {
   /* Officers work from a desk: the land list becomes a side column. */
   .hud-top { right: auto; width: 360px; }
-  .land-rail { top: calc(env(safe-area-inset-top) + 92px); bottom: 16px; width: 384px; }
+  .land-rail { top: calc(env(safe-area-inset-top) + 92px); width: 384px; }
   .land-rail .chips { flex-wrap: wrap; overflow: visible; }
   .land-rail .quests { flex-direction: column; overflow-y: auto; overflow-x: hidden; padding: 4px 12px; scroll-snap-type: none; }
   .land-rail .quest { width: 100%; }
@@ -188,7 +169,7 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .draw-stats { display: flex; justify-content: space-around; gap: 8px; padding: 2px 4px; font-size: 13px; text-align: center; }
 .draw-warn { padding: 6px 10px; border-radius: 11px; background: rgba(245, 183, 0, .22); font-weight: 600; }
 .draw-hint.bad { box-shadow: 0 0 0 2px var(--urgent), 0 6px 24px rgba(20, 25, 25, 0.14); }
-.draw-hint { position: fixed; z-index: 10; top: calc(env(safe-area-inset-top) + 72px); left: calc(50% + var(--side) / 2); transform: translateX(-50%); border-radius: 99px; padding: 8px 16px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.draw-hint { position: fixed; z-index: 10; top: calc(env(safe-area-inset-top) + 72px); left: 50%; transform: translateX(-50%); border-radius: 99px; padding: 8px 16px; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .stepbar { display: flex; flex-direction: column; gap: 2px; }
 .stepbar b { font-size: 17px; }
 .stepbar ol { list-style: none; display: flex; margin: 0 0 8px; padding: 0; }
