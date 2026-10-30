@@ -1,0 +1,9 @@
+vendor
+.env
+.env.*
+!.env.example
+storage/logs/*
+storage/app/public/*
+database/*.sqlite
+tests
+.phpunit.cache

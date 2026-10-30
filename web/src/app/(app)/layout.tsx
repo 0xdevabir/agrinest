@@ -1,18 +1,16 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Layout } from '../../components/Layout'
-import { useSessionField } from '../../hooks/useSessionField'
+import { useEffect, type ReactNode } from 'react'
+import { TabBar } from '@/components/ui'
+import { useApp } from '@/lib/app'
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { fieldId, ready } = useSessionField()
+export default function AppLayout({ children }: { children: ReactNode }) {
+  const { user, ready } = useApp()
   const router = useRouter()
 
-  useEffect(() => {
-    if (ready && !fieldId) router.replace('/onboarding')
-  }, [ready, fieldId, router])
+  useEffect(() => { if (ready && !user) router.replace('/login') }, [ready, user, router])
 
-  if (!ready || !fieldId) return null
-  return <Layout>{children}</Layout>
+  if (!user) return <div className="login bg-brand" />
+  return <>{children}<TabBar /></>
 }

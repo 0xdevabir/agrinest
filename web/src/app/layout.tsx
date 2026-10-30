@@ -1,38 +1,33 @@
 import type { Metadata, Viewport } from 'next'
-import { I18nProvider } from '../i18n/I18nProvider'
-import '../styles/globals.css'
+import { Hind_Siliguri } from 'next/font/google'
+import type { ReactNode } from 'react'
+import { AppProvider } from '@/lib/app'
+import './globals.css'
+
+const bangla = Hind_Siliguri({ subsets: ['bengali', 'latin'], weight: ['400', '500', '600', '700'], variable: '--font-bangla', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'AgriNest — অ্যাগ্রিনেস্ট',
-  description: 'বাংলায় আপনার AI কৃষি সহায়ক',
+  title: 'AgriNest',
+  description: 'আপনার জমি, ফসল আর কৃষি কর্মকর্তা, এক ম্যাপে।',
   manifest: '/manifest.webmanifest',
   icons: { icon: '/favicon.svg' },
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'AgriNest' },
+  appleWebApp: { capable: true, title: 'AgriNest', statusBarStyle: 'black-translucent' },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#f1f1f1',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f1f1f1' },
+    { media: '(prefers-color-scheme: dark)', color: '#141919' },
+  ],
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="bn">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body>
-        <I18nProvider>{children}</I18nProvider>
-      </body>
+    <html lang="bn" className={bangla.variable}>
+      <body><AppProvider>{children}</AppProvider></body>
     </html>
   )
 }
-
-
