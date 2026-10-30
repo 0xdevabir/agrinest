@@ -123,8 +123,11 @@ export function useLandDraft({ draftKey, initial, ghostId, fields, onStart, onFo
           return last && metres(last, p) < WALK_STEP_M ? s : { points: [...s.points, p], closed: false }
         })
       },
-      () => {
+      (err) => {
+        // Signal drops under trees and comes back, so only a refusal ends the walk.
+        if (err.code !== err.PERMISSION_DENIED) { setWalk({ acc: 0 }); return }
         stopWatch()
+        liveStep.current = false
         toast(t('জিপিএস পাওয়া যায়নি। লোকেশন চালু করে আবার চেষ্টা করুন', 'Could not get GPS. Turn on location and try again.'))
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 },

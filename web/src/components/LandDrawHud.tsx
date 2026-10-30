@@ -33,7 +33,9 @@ export function LandDrawHud({ draft, step, title, hideHint, busy, cancelLabel, d
   }
 
   const hint = walk
-    ? t(`সীমানা ধরে হাঁটুন · ${num(n)}টি বিন্দু · নির্ভুলতা ±${num(walk.acc)} মি`, `Walk along the boundary · ${n} points · accuracy ±${walk.acc} m`)
+    ? walk.acc
+      ? t(`সীমানা ধরে হাঁটুন · ${num(n)}টি বিন্দু · নির্ভুলতা ±${num(walk.acc)} মি`, `Walk along the boundary · ${n} points · accuracy ±${walk.acc} m`)
+      : t(`জিপিএস খোঁজা হচ্ছে… · ${num(n)}টি বিন্দু`, `Looking for GPS… · ${n} points`)
     : issue ? issueText[issue]
       : selected !== null ? t('কোনাটি টেনে সরান, অথবা নিচে থেকে মুছুন', 'Drag this corner to move it, or delete it below')
         : closed ? t('কোনা টেনে ঠিক করুন · ছোট বিন্দু টেনে নতুন কোনা যোগ করুন', 'Drag corners to adjust · drag a small dot to add a corner')
