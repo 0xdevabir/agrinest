@@ -1,0 +1,20 @@
+{
+  "name": "@agrisathi/database",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.6.0"
+  }
+}
+
+

@@ -1,10 +1,25 @@
 {
   "name": "agrisathi",
   "private": true,
+  "workspaces": [
+    "apps/api",
+    "web",
+    "libs/database",
+    "libs/shared-types"
+  ],
   "scripts": {
-    "dev:api": "cd apps/api && .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
-    "dev:web": "cd apps/web && npm run dev",
+    "generate": "npm run generate --workspace @agrisathi/database",
+    "db:push": "npm run db:push --workspace @agrisathi/api",
+    "dev:api": "npm run start:dev --workspace @agrisathi/api",
+    "dev:web": "npm run dev --workspace web",
     "seed": "curl -s -X POST http://127.0.0.1:8000/api/seed/rahim",
-    "build:web": "cd apps/web && npm run build"
+    "build:api": "npm run build --workspace @agrisathi/api",
+    "build:web": "npm run build --workspace web"
+  },
+  "allowScripts": {
+    "prisma@6.19.3": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "sharp@0.34.5": true
   }
 }

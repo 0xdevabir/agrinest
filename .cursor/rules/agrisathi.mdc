@@ -7,7 +7,7 @@ alwaysApply: true
 
 Bangla-first unified farming PWA. Five features = one season loop on shared Farmer → Field → Event.
 
-Stack: React+Vite PWA · FastAPI · Supabase · MobileNetV3/EfficientNet-B0 · Python rules · LLM Bangla polish.
+Stack: Next.js PWA · NestJS · Prisma/SQLite · Supabase-shaped Farmer/Field/Event · MobileNetV3/EfficientNet-B0 · TypeScript rules · LLM Bangla polish.
 
 Hero: Crop Guardian. Gate at hour 24. Never cut Crop Guardian or shared profile.
 

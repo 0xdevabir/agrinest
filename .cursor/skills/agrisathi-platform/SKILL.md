@@ -13,9 +13,11 @@ You own the **shared core** only. Do not implement disease ML, market UI, or yie
 
 ## Stack (fixed)
 
-- `apps/web` — React + Vite PWA
-- `apps/api` — FastAPI
-- Supabase — Postgres + Auth + Storage
+- `web/` — Next.js App Router PWA (Falcon-style `src/features`, `src/components`, `src/services`)
+- `apps/api` — NestJS feature modules (controller / service / dto), same shape as Falcon `apps/core-service`
+- `libs/database` — Prisma schema for Farmer → Field → Event
+- `libs/shared-types` — API contracts shared with the web app
+- Supabase — Postgres + Auth + Storage when hosted; SQLite locally
 - Bangla fonts: Hind Siliguri or Noto Sans Bengali (load hour 0)
 
 ## Must ship

@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Farmer {
+  id        String   @id @default(uuid())
+  name      String
+  district  String
+  phone     String?
+  lang      String   @default("bn")
+  createdAt DateTime @default(now()) @map("created_at")
+  fields    Field[]
+
+  @@map("farmers")
+}
+
+model Field {
+  id            String    @id @default(uuid())
+  farmerId      String    @map("farmer_id")
+  crop          String    @default("rice")
+  variety       String    @default("BRRI dhan28")
+  sowingDate    String    @map("sowing_date")
+  lat           Float     @default(25.7439)
+  lon           Float     @default(89.2752)
+  areaHa        Float     @default(0.8) @map("area_ha")
+  locationLabel String?   @map("location_label")
+  farmer        Farmer    @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  events        Event[]
+  listings      Listing[]
+
+  @@index([farmerId])
+  @@map("fields")
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  fieldId   String   @map("field_id")
+  type      String
+  payload   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  field     Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@index([fieldId, createdAt])
+  @@map("events")
+}
+
+model Listing {
+  id           String   @id @default(uuid())
+  fieldId      String   @map("field_id")
+  crop         String
+  quantityTon  Float    @map("quantity_ton")
+  priceHintBdt Float?   @map("price_hint_bdt")
+  district     String
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  field        Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@index([fieldId])
+  @@map("listings")
+}
