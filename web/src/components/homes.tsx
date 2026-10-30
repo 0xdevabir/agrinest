@@ -92,7 +92,7 @@ export function AgentHome() {
     <MapStage ref={stage} fields={data?.fields ?? []} onChange={reload} showFarmer drawing={drawing} onDrawingChange={setDrawing} drawFarmerId={farmerId}>
       <div className="hud-top">
         <div className="glass hud-pill grow row between">
-          <div><b>{t('আজকের ভিজিট', "Today's visits")}</b><div className="sub small">{num(data?.stats.due ?? 0)} {t('জমি বাকি', 'lands due')} · {num(data?.stats.scans_today ?? 0)} {t('স্ক্যান হয়েছে', 'scanned')}</div></div>
+          <div><b>{t('আজকের ভিজিট', "Today's visits")}</b><div className="sub small">{num(data?.stats.due ?? 0)} {t('জমি বাকি', data?.stats.due === 1 ? 'land due' : 'lands due')} · {num(data?.stats.scans_today ?? 0)} {t('স্ক্যান হয়েছে', 'scanned')}</div></div>
           <button className="btn small" onClick={() => setPicking(!picking)}>➕ {t('জমি', 'Land')}</button>
         </div>
       </div>

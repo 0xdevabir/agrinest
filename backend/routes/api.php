@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => ['status' => 'ok']);
 
-Route::middleware('throttle:10,1')->group(function () {
+Route::middleware('throttle:auth')->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
 });
@@ -29,8 +29,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/map/tiles/{style}/{z}/{x}/{y}', [MapController::class, 'tile'])
         ->whereIn('style', ['satellite', 'light', 'dark'])
         ->whereNumber(['z', 'x', 'y'])
-        ->middleware('throttle:1200,1');
-    Route::get('/map/search', [MapController::class, 'search'])->middleware('throttle:30,1');
+        ->middleware('throttle:tiles');
+    Route::get('/map/search', [MapController::class, 'search'])->middleware('throttle:map-search');
 
     Route::get('/fields', [FieldController::class, 'index']);
     Route::post('/fields', [FieldController::class, 'store']);
@@ -40,7 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/fields/{field}/plant', [FieldController::class, 'plant']);
     Route::post('/cycles/{cycle}/harvest', [FieldController::class, 'harvest']);
 
-    Route::post('/fields/{field}/scans', [ScanController::class, 'store'])->middleware('throttle:30,1');
+    Route::post('/fields/{field}/scans', [ScanController::class, 'store'])->middleware('throttle:scans');
     Route::get('/scans/queue', [ScanController::class, 'queue']);
     Route::post('/scans/{scan}/review', [ScanController::class, 'review']);
 

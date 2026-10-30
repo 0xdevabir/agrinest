@@ -46,14 +46,16 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
 
   const padding = () => {
     const wide = window.innerWidth >= 900
-    return { top: 110, bottom: wide ? 60 : 210, left: 50, right: wide ? 460 : 50 }
+    // On a desk, keep land clear of the officer's list as well as the side sheet.
+    const rail = wide && document.querySelector('.land-rail')
+    return { top: 110, bottom: wide ? 60 : 210, left: rail ? 420 : 50, right: wide ? 460 : 50 }
   }
 
   useImperativeHandle(ref, () => ({
     flyTo: (lng, lat, zoom = 16.5) => map.current?.flyTo({ center: [lng, lat], zoom, pitch: 50, speed: 1.2, padding: padding(), essential: true }),
     fitAll: () => {
       const b = boundsOf(latest.current.fields)
-      if (b) map.current?.fitBounds(b, { padding: padding(), maxZoom: 16.5, pitch: 45, duration: 1200 })
+      if (b) map.current?.fitBounds(b, { padding: padding(), maxZoom: 17.5, pitch: 45, duration: 1200 })
     },
     center: () => {
       const c = map.current?.getCenter()
@@ -156,6 +158,27 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
       el.addEventListener('click', (e) => { e.stopPropagation(); latest.current.onSelect?.(f) })
       return new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([f.lng, f.lat]).addTo(m)
     })
+
+    // When land sits close together on screen, shrink the orbs and drop labels that would collide.
+    const declutter = () => {
+      const pts = markers.current.map((x) => m.project(x.getLngLat()))
+      const dense = pts.some((a, i) => pts.slice(i + 1).some((b) => a.dist(b) < 72))
+      const els = markers.current.map((x) => x.getElement())
+      els.forEach((el) => el.classList.toggle('dense', dense))
+      const box = (el: Element | null) => el!.getBoundingClientRect()
+      const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+      const taken = els.map((el) => box(el.querySelector('.crop-orb')))
+      els.forEach((el) => {
+        const label = el.querySelector<HTMLElement>('.crop-label')!
+        const r = box(label)
+        const clash = taken.some((o) => hit(r, o))
+        label.style.visibility = clash ? 'hidden' : ''
+        if (!clash) taken.push(r)
+      })
+    }
+    declutter()
+    m.on('moveend', declutter)
+    return () => { m.off('moveend', declutter) }
   }, [fields, selectedId, loaded, draw, showFarmer, pick])
 
   // Intro: start from the whole country and fly down to this user's land.
@@ -164,7 +187,7 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
     if (!loaded || !m || flown.current || !fields.length) return
     flown.current = true
     const b = boundsOf(fields)
-    if (b) setTimeout(() => m.fitBounds(b, { padding: padding(), maxZoom: 16.5, pitch: 45, bearing: -12, duration: 3200, essential: true }), 250)
+    if (b) setTimeout(() => m.fitBounds(b, { padding: padding(), maxZoom: 17.5, pitch: 45, bearing: -12, duration: 3200, essential: true }), 250)
   }, [fields, loaded])
 
   // Boundary being drawn

@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
         $river = $this->field($abir, $agent, 'River Plot', [[90.4234, 24.7490], [90.4262, 24.7488], [90.4264, 24.7470], [90.4236, 24.7470]], 'potato', 30);
         $east = $this->field($abir, $agent, 'East Plot', [[90.4192, 24.7462], [90.4226, 24.7462], [90.4228, 24.7444], [90.4194, 24.7442]], 'mustard', 82);
         $home = $this->field($abir, $agent, 'Home Plot', [[90.4232, 24.7465], [90.4258, 24.7465], [90.4256, 24.7448], [90.4232, 24.7449]], 'tomato', 45);
-        $rahimPlot = $this->field($rahim, $agent, 'Rahim Paddy', [[90.4100, 24.7520], [90.4135, 24.7522], [90.4137, 24.7500], [90.4102, 24.7498]], 'rice', 55, 'BRRI dhan49');
+        $rahimPlot = $this->field($rahim, $agent, 'Rahim Paddy', [[90.4295, 24.7490], [90.4330, 24.7492], [90.4332, 24.7470], [90.4297, 24.7468]], 'rice', 55, 'BRRI dhan49');
 
         // A past harvest gives YieldMax something to learn from.
         $north->cycles()->create(['crop' => 'wheat', 'status' => 'harvested', 'sown_on' => now()->subMonths(11), 'expected_harvest_on' => now()->subMonths(7), 'harvested_on' => now()->subMonths(7), 'actual_yield_kg' => 3100]);
@@ -44,8 +44,8 @@ class DatabaseSeeder extends Seeder
         $reviewed = $this->scan($north, $abir, 'none', 'healthy', $officer);
         $treated = $this->scan($home, $agent, 'medium', 'leaf_yellowing', $officer, 'watch');
 
-        Guidance::create(['field_id' => $north->id, 'officer_id' => $officer->id, 'scan_id' => $reviewed->id, 'title' => 'Crop looks strong, keep water at 3–5 cm', 'body' => 'আপনার ধান ভালো আছে। থোড় আসা পর্যন্ত জমিতে ৩–৫ সেমি পানি রাখুন।', 'due_on' => today()->addDays(3)]);
-        Guidance::create(['field_id' => $home->id, 'officer_id' => $officer->id, 'scan_id' => $treated->id, 'title' => 'Check for leaf yellowing again in 3 days', 'body' => 'পাতার নিচের দিক দেখুন। হলুদ বাড়লে নতুন ছবি পাঠান, এখনই সার বাড়াবেন না।', 'due_on' => today()->addDays(3)]);
+        Guidance::create(['field_id' => $north->id, 'officer_id' => $officer->id, 'scan_id' => $reviewed->id, 'title' => 'ফসল ভালো আছে, পানি ৩–৫ সেমি রাখুন', 'body' => 'আপনার ধান ভালো আছে। থোড় আসা পর্যন্ত জমিতে ৩–৫ সেমি পানি রাখুন।', 'due_on' => today()->addDays(3)]);
+        Guidance::create(['field_id' => $home->id, 'officer_id' => $officer->id, 'scan_id' => $treated->id, 'title' => '৩ দিন পর আবার পাতার হলুদ ভাব দেখুন', 'body' => 'পাতার নিচের দিক দেখুন। হলুদ বাড়লে নতুন ছবি পাঠান, এখনই সার বাড়াবেন না।', 'due_on' => today()->addDays(3)]);
 
         $abir->forceFill(['xp' => 280])->save();
 
@@ -60,6 +60,12 @@ class DatabaseSeeder extends Seeder
 
     private function field(User $farmer, User $by, string $name, array $points, string $crop, int $sownDaysAgo, ?string $variety = null): Field
     {
+        // Shrink each plot around its middle so Abir's land totals about 20 acres.
+        $cx = array_sum(array_column($points, 0)) / count($points);
+        $cy = array_sum(array_column($points, 1)) / count($points);
+        // The offset moves the demo from the town onto the paddy land east of the river.
+        $points = array_map(fn ($p) => [$cx + ($p[0] - $cx) * 0.54 + 0.0105, $cy + ($p[1] - $cy) * 0.54], $points);
+
         $polygon = Geo::polygon($points);
         $ring = array_slice($polygon['coordinates'][0], 0, -1);
         [$lat, $lng] = Geo::center($ring);

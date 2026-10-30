@@ -37,7 +37,7 @@ class Field extends Model
 
     public function activeCycle(): HasOne
     {
-        return $this->hasOne(CropCycle::class)->where('status', 'active')->latestOfMany();
+        return $this->hasOne(CropCycle::class)->ofMany(['id' => 'max'], fn ($q) => $q->where('status', 'active'));
     }
 
     public function scans(): HasMany

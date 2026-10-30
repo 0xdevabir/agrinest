@@ -27,6 +27,7 @@ class AgrinestFlowTest extends TestCase
                 'current' => ['condition' => 'Rain', 'temperatureC' => 29, 'humidity' => 80, 'precipitationChance' => 80, 'windKph' => 5],
                 'daily' => array_fill(0, 5, ['day' => 'Friday', 'condition' => 'Rain', 'highC' => 30, 'humidity' => 90, 'precipitationChance' => 85, 'windKph' => 8]),
             ]]),
+            '*/v1/maps/tiles/*' => Http::response('tile', 200, ['Content-Type' => 'image/jpeg']),
             '*/v1/reverse-geocode*' => Http::response(['data' => []]),
             '*/chat/completions' => Http::response(['error' => ['code' => 'invalid_api_key']], 401),
         ]);
@@ -163,5 +164,19 @@ class AgrinestFlowTest extends TestCase
 
         $this->assertGreaterThan($before['potential_kg'], $after['potential_kg']);
         $this->assertSame(2, $after['seasons_learned']);
+    }
+
+    public function test_loading_map_tiles_does_not_use_up_the_scan_allowance(): void
+    {
+        $farmer = $this->user('farmer');
+        Sanctum::actingAs($farmer);
+        $fieldId = $this->postJson('/api/fields', ['name' => 'Plot', 'points' => self::POINTS])->assertSuccessful()->json('field.id');
+
+        foreach (range(1, 31) as $x) {
+            $this->get("/api/map/tiles/satellite/17/$x/1")->assertOk();
+        }
+
+        $this->post("/api/fields/$fieldId/scans", ['photos' => [UploadedFile::fake()->image('leaf.jpg')]], ['Accept' => 'application/json'])
+            ->assertSuccessful();
     }
 }

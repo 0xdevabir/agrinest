@@ -1,116 +1,87 @@
-README.md [136L]
-README.md [200L]
 # AgriNest
-Bangla-first farming PWA. One season loop on a shared **Farmer → Field → Event** record: diagnose the leaf, water and fertilize for the stage, watch weather risk, estimate yield, then decide whether to sell.
-... [lean-ctx: omitted 1 lines]
-Crop Guardian is the hero. The other four features read and write the same field events, so a diagnosis changes today’s advice, the yield range, and the sell-or-wait hint.
-## Features
-| Feature | What the farmer gets | Events |
-... [lean-ctx: omitted 1 lines]
-| **Crop Guardian** | Leaf photo → disease name and Bangla treatment steps | `diagnosis`, `treatment_logged` |
-| **Precision Farm** | Irrigate / fertilizer card from crop stage and weather | `advice` |
-... [lean-ctx: omitted 1 lines]
-UI copy is Bangla by default (Hind Siliguri), with an English toggle. Chemical amounts are estimates from BRRI / DAE material. Confirm them with the local agriculture officer before spraying.
-## Demo
-Rahim farms 0.8 ha of BRRI dhan28 rice in Rangpur, sown 40 days ago.
-... [lean-ctx: omitted 2 lines]
-That calls `POST /api/seed/rahim` and is safe to repeat (`already_seeded` if Rahim already has a field). `POST /api/seed/reset` deletes listings, events, fields, and farmers.
-Demo diagnosis can pin a class with the `force_disease` form field, or with a filename that names the disease. Pitch script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
-## Quick start
-Requires Node.js 20+ and npm workspaces.
-```bash
-cp apps/api/.env.example apps/api/.env
-npm install          # also runs prisma generate
-npm run db:push
-```
-... [lean-ctx: omitted 1 lines]
-## Services
-| Process | Stack | Port | Role |
-... [lean-ctx: omitted 1 lines]
-| `npm run dev:web` | Next.js | 5173 | Bangla PWA |
-... [lean-ctx: omitted 1 lines]
-| `npm run dev:guardian` | FastAPI | 8011 | Leaf classify and Bangla step polish |
-... [lean-ctx: omitted 1 lines]
-First time for the Python services: `python3 -m venv apps/crop-guardian/.venv && apps/crop-guardian/.venv/bin/pip install -r apps/crop-guardian/requirements.txt` and the same for `apps/agronomy`. Nest calls those URLs (`GUARDIAN_URL`, `AGRONOMY_URL`). If a service is down, Nest uses its local copy and marks the response `nest-fallback`. FarmMarket stays in Nest.
-## Docker
-One command on macOS, Windows, and Linux. Use Docker Desktop on Mac or Windows, or Docker Engine with the Compose v2 plugin on Linux.
-... [lean-ctx: omitted 3 lines]
-Open http://localhost:5173. That starts the Next.js app, the Nest API, Crop Guardian, and the agronomy service. SQLite and leaf photos are Docker volumes (`agrisathi-db`, `agrisathi-uploads`), so nothing depends on a Mac, Windows, or Linux path. The first boot creates the database and seeds Rahim. `docker compose up` again keeps that data. `docker compose down` stops the stack and keeps the volumes. `docker compose down -v` deletes the database and uploaded photos.
-The images are Linux containers. Docker Desktop runs them on Apple Silicon, Intel, and Windows. Stop a local `dev:api` or `dev:web` first if port 8000 or 5173 is already taken.
-If a host port is already taken, set `WEB_PORT`, `API_PORT`, `GUARDIAN_PORT`, or `AGRONOMY_PORT`. Inside the network the app still calls Nest at `http://api:8000`.
-## Scripts
-| Script | What it does |
-... [lean-ctx: omitted 1 lines]
-| `npm run generate` | `prisma generate` for `@agrisathi/database` |
-... [lean-ctx: omitted 3 lines]
-| `npm run build:api` | Compile Nest to `apps/api/dist` |
-| `npm run build:web` | Production Next build |
-## Environment
-Copy [apps/api/.env.example](apps/api/.env.example). The root [.env.example](.env.example) lists the same API keys plus the Next proxy.
-... [lean-ctx: omitted 1 lines]
-| `DATABASE_URL` | `file:./agrisathi.db` | SQLite URL. `file:` paths are relative to `libs/database/prisma/` |
-... [lean-ctx: omitted 1 lines]
-| `CORS_ORIGIN` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated browser origins |
-... [lean-ctx: omitted 1 lines]
-| `AGRISATHI_DISEASE_CONF_THRESHOLD` | `0.45` | Below this, diagnosis is re-labeled through the backup path |
-| `API_PROXY_TARGET` | `http://127.0.0.1:8000` | Where Next rewrites `/api` |
-... [lean-ctx: omitted 2 lines]
-## Layout
-```
-web/                     Next.js App Router PWA
-  src/app/(app)/         Home and the five feature routes
-  src/features/          Screen components
-  src/i18n/              Bangla messages and English overlay
-apps/api/src/            NestJS — the process `dev:api` starts
-  */*.controller.ts      HTTP modules
-  engines/               Advice, climate, disease, market, weather, yield, workbench
-  data is apps/api/data/ Calendars, treatments, varieties, BBS baselines, DAM CSV, weather seed
-libs/database/           Prisma schema and generated client
-libs/shared-types/       Farmer, Field, Event, and feature response types
-supabase/schema.sql      Same Farmer / Field / Event shape, for a hosted Postgres later
-docs/                    Hackathon plan and demo script
-```
-... [lean-ctx: omitted 1 lines]
-## Data model
-Prisma models in [libs/database/prisma/schema.prisma](libs/database/prisma/schema.prisma). JSON columns and HTTP bodies use snake_case (`farmer_id`, `area_ha`).
-... [lean-ctx: omitted 1 lines]
-Event types in `@agrisathi/shared-types`: `diagnosis`, `advice`, `weather_alert`, `treatment_logged`, `sale`.
-... [lean-ctx: omitted 1 lines]
-## HTTP API
-Base URL `http://127.0.0.1:8000/api`. Types live in [libs/shared-types/src/index.ts](libs/shared-types/src/index.ts).
-... [lean-ctx: omitted 1 lines]
-| `GET` | `/health` | Liveness |
-... [lean-ctx: omitted 3 lines]
-| `POST` | `/fields/:fieldId/diagnose` | Multipart leaf photo → diagnosis event |
-... [lean-ctx: omitted 1 lines]
-| `GET` | `/fields/:fieldId/advice/today` | Stage, irrigate, fertilizer |
-... [lean-ctx: omitted 2 lines]
-| `GET` | `/fields/:fieldId/dashboard` | Home aggregate |
-... [lean-ctx: omitted 1 lines]
-Diagnosis accepts an image up to 8 MB. Optional form field `force_disease` must match a key in `apps/api/data/treatments_bn.json`.
-## Web routes
-| Path | Screen |
-... [lean-ctx: omitted 1 lines]
-| `/guardian`, `/guardian/history`, `/guardian/treatment` | Scan, past diagnoses, treatment |
-| `/precision`, `/precision/irrigation`, `/precision/fertilizer`, `/precision/stage` | Advice card and stage detail |
-... [lean-ctx: omitted 2 lines]
-| `/market`, `/market/prices`, `/market/hint`, `/market/listings`, `/market/p/[id]` | Shop, prices, hint, listings, one listing |
-... [lean-ctx: omitted 1 lines]
-## How diagnosis works today
-`classifyLeaf` resizes the photo and scores brown, yellow, green, and dark pixels, then maps that to a class in the Bangla treatment file (`healthy`, `brown_spot`, `bacterial_leaf_blight`, `rice_blast`, `sheath_blight`, or `unknown`).
-... [lean-ctx: omitted 2 lines]
-A MobileNetV3 or EfficientNet-B0 model is the planned replacement for the color heuristic. It is not loaded in this build. Resized JPEGs are written to `uploads/leaf-photos` under the Nest working directory (`apps/api/uploads/leaf-photos` with `npm run dev:api`).
-## Stack
-| Layer | Choice |
-... [lean-ctx: omitted 1 lines]
-| Web | Next.js 15 App Router, React 19, installable PWA (`web/public/manifest.webmanifest`) |
-... [lean-ctx: omitted 2 lines]
-| Shared types | `libs/shared-types`, imported by web and API |
-| Weather | Open-Meteo, with `weather_seed.json` |
-... [lean-ctx: omitted 1 lines]
-## Docs
-- [Ultimate plan](docs/ULTIMATE_PLAN.md) — gates, cut order, hour-by-hour build
-... [lean-ctx: omitted 1 lines]
-- Source PDF: [docs/AgriSathi Unified AI Farming Platform — Hackathon Plan.pdf](docs/AgriSathi%20Unified%20AI%20Farming%20Platform%20%E2%80%94%20Hackathon%20Plan.pdf)
-Cut order if time runs out: FarmMarket buyer matching, then YieldMax history, then the climate risk map, then voice. Do not cut Crop Guardian or the shared farmer profile.
 
+A map-first farming platform for Bangladesh. Farmers see their own land on satellite imagery, agents add land and photos for farmers who don't use phones, and officers review a whole area from one map instead of visiting 15–20 plots a day. Bangla by default (Hind Siliguri), with an English toggle.
+
+## Who does what
+
+| Role | Home screen | Can do |
+|------|-------------|--------|
+| **Farmer** | Their land on the map | Mark land, record crops, send photos, follow guidance, sell |
+| **Agent** | Today's visits | Add farmers and land, take photos on their behalf |
+| **Officer** | Area map with filters | Open any land, review scans, send personal guidance |
+| **Government / broker** | Market | Post what they want to buy, bid, negotiate |
+
+## Features
+
+- **Crop Guard**: photos get an instant first look, and every scan stays in the officer's review queue. The first look is only a hint.
+- **Climate Smart**: weather from Atlas for each land, with risk flags on the map.
+- **Precision Farm**: what to do today, based on crop stage, weather and the land's history.
+- **YieldMax**: expected yield and crop potential for each growth phase. It uses the land's past seasons as they build up.
+- **Farm Market**: farmer listings, buy posts, bids, counter-offers and accepted deals.
+- **Game layer**: XP and levels for scans and completed guidance. Crop markers show season progress as a ring and health as a colour.
+
+Crop stages, yields and prices are approximate reference values, not measured data. Chemical advice cites BRRI/DAE and tells the farmer to confirm with their local officer.
+
+## Run it
+
+Requires Docker with Compose v2.
+
+```bash
+cp .env.example .env     # then fill it in; the file explains APP_KEY
+docker compose up --build
+```
+
+Open http://localhost:5173. If 5173 or 8000 is already taken, set `WEB_PORT` or `API_PORT` in `.env`.
+
+The first boot migrates the database and seeds demo data. `docker compose down` keeps the data; `docker compose down -v` deletes it. To reset the demo:
+
+```bash
+docker compose exec -T api php artisan migrate:fresh --seed --force
+```
+
+## Demo accounts
+
+The password for all of them is `password`. The login page also has one-tap demo buttons. Set `SEED_DEMO=false` and remove those buttons before any real deployment.
+
+| Role | Phone |
+|------|-------|
+| Farmer (Abir, 20 acres) | 01700000001 |
+| Agent | 01700000002 |
+| Officer | 01700000003 |
+| Government buyer | 01700000004 |
+| Farmer (Rahim) | 01700000005 |
+| Broker | 01700000006 |
+
+## Environment
+
+| Variable | Purpose |
+|----------|---------|
+| `APP_KEY` | Laravel encryption key (required) |
+| `DB_PASSWORD` | Postgres password (required) |
+| `ATLAS_API_KEY` | Map tiles, search and weather. Used only on the server |
+| `NOVA_API_KEY` | AI scan feedback. Without a working key, scans use a colour check and are labelled as such |
+| `SEED_DEMO` | Create demo accounts on first boot |
+| `WEB_PORT`, `API_PORT` | Host ports (defaults 5173, 8000) |
+
+## Layout
+
+```
+backend/                 Laravel 13 API (PHP 8.4, Sanctum, FrankenPHP)
+  app/Services/          AtlasClient, NovaClient, CropGuard, Agronomy, WeatherSync, Game
+  routes/api.php         All HTTP routes
+  tests/Feature/         End-to-end API tests
+web/                     Next.js 15 PWA with MapLibre
+  src/app/(app)/         Map home, market, profile, farmers, reviews
+  src/components/        FarmMap, MapStage, FieldSheet, role homes
+docker-compose.yml       db (Postgres 17), api, scheduler, web
+```
+
+The browser never sees the Atlas key: map tiles load through `/api/map/tiles/...`, which requires sign-in.
+
+`apps/`, `libs/`, `hono-try/`, `supabase/` and the root npm workspaces are the earlier prototype. Nothing in the Docker stack uses them. `docs/` also describes that prototype's plan.
+
+## Tests
+
+```bash
+cd backend && php artisan test
+```

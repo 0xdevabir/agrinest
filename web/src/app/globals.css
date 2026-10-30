@@ -78,6 +78,7 @@ button.cell:active { background: var(--tint); }
 
 /* Controls */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 20px; border: 0; border-radius: var(--r-md); background: var(--sage); color: var(--on-sage); font-weight: 600; cursor: pointer; transition: transform .15s var(--spring), opacity .15s; }
+.card .row .btn { white-space: nowrap; padding: 0 12px; }
 .btn:active { transform: scale(.97); }
 .btn:disabled { opacity: .5; cursor: default; }
 .btn.block { width: 100%; }
@@ -114,6 +115,7 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .sheet-head { padding: 8px 16px 10px; touch-action: none; cursor: grab; }
 .grabber { width: 38px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 10px; }
 .sheet-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 16px calc(env(safe-area-inset-bottom) + 24px); display: flex; flex-direction: column; gap: 12px; }
+.sheet-body > * { flex-shrink: 0; }
 .close { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--line); cursor: pointer; font-size: 14px; flex: none; }
 @media (min-width: 900px) {
   .sheet { left: auto; right: 16px; top: 16px; bottom: 16px; width: 420px; max-height: none; border-radius: 26px; animation: slide .42s var(--spring); }
@@ -126,7 +128,8 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 @keyframes fade { from { opacity: 0; } }
 
 /* Map game */
-.map-root { position: fixed; inset: 0; background: #1a2121; }
+/* Two classes: MapLibre's own stylesheet sets position: relative on the same element. */
+.map-root.maplibregl-map { position: fixed; inset: 0; background: #1a2121; }
 .map-root .maplibregl-canvas { outline: 0; }
 .hud-top { position: fixed; z-index: 10; top: calc(env(safe-area-inset-top) + 12px); left: 12px; right: 12px; display: flex; gap: 8px; align-items: flex-start; pointer-events: none; }
 .hud-top > * { pointer-events: auto; }
@@ -139,7 +142,7 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .quest:active { transform: scale(.97); }
 .xp { background: var(--cream); color: var(--ink); border-radius: 99px; font-size: 12px; font-weight: 700; padding: 3px 8px; flex: none; }
 @media (prefers-color-scheme: dark) { .xp { color: #f3e6c8; } }
-.fab { position: fixed; z-index: 10; right: 12px; display: flex; flex-direction: column; gap: 8px; top: calc(env(safe-area-inset-top) + 76px); }
+.fab { position: fixed; z-index: 10; right: 12px; display: flex; flex-direction: column; gap: 8px; top: calc(env(safe-area-inset-top) + 100px); }
 
 .land-rail { position: fixed; z-index: 10; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 90px); display: flex; flex-direction: column; gap: 6px; }
 @media (min-width: 900px) {
@@ -156,6 +159,7 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .crop-orb { --c: #4fa35b; --p: 50; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 25px; background: conic-gradient(var(--c) calc(var(--p) * 1%), rgba(255, 255, 255, .35) 0); padding: 4px; box-shadow: 0 6px 18px rgba(0, 0, 0, .4); position: relative; }
 .crop-orb > span { width: 100%; height: 100%; border-radius: 50%; background: #fff; display: grid; place-items: center; }
 .crop-orb.alert::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--c); animation: ping 1.8s infinite; }
+.crop-marker.dense .crop-orb { width: 40px; height: 40px; font-size: 19px; padding: 3px; }
 .crop-label { margin-top: 4px; padding: 2px 9px; border-radius: 99px; background: rgba(20, 25, 25, .72); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 @keyframes ping { from { transform: scale(.9); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
 .draw-dot { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 4px solid #5f7a57; box-shadow: 0 2px 6px rgba(0, 0, 0, .4); }

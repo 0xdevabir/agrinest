@@ -29,7 +29,7 @@ In Cursor chat, attach or mention the skill under `.cursor/skills/<name>/SKILL.m
 4. Cut order: FarmMarket buyer matching → YieldMax history → Climate risk map → voice. Never cut Crop Guardian or shared profile.
 5. Live API down → cached/seeded data; say so in pitch.
 6. Chemical advice: cite BRRI/DAE; tell farmer to confirm with local officer.
-7. Stack: Next.js PWA (`web/`) · NestJS (`apps/api`) · Prisma (`libs/database`) · shared types (`libs/shared-types`) · Supabase-shaped Farmer/Field/Event · MobileNetV3/EfficientNet-B0 · LLM Bangla polish · TypeScript rules.
+7. Stack: Next.js PWA (`web/`) · Laravel API (`backend/`) · Postgres · Docker Compose. `apps/`, `libs/` and `supabase/` are the unused earlier prototype; don't build on them.
 8. Prefer working thin vertical slices over unfinished breadth.
 
 ## Parallelism
