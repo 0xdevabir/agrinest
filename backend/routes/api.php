@@ -6,6 +6,7 @@ use App\Http\Controllers\FieldController;
 use App\Http\Controllers\GuidanceController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\MarketController;
+use App\Http\Controllers\OversightController;
 use App\Http\Controllers\ScanController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/farm', [DashboardController::class, 'farm']);
     Route::get('/dashboard/officer', [DashboardController::class, 'officer']);
     Route::get('/dashboard/agent', [DashboardController::class, 'agent']);
+    Route::get('/dashboard/national', [OversightController::class, 'national']);
     Route::post('/agent/farmers', [DashboardController::class, 'addFarmer']);
 
     Route::get('/map/tiles/{style}/{z}/{x}/{y}', [MapController::class, 'tile'])

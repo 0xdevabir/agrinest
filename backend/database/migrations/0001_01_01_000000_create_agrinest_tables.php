@@ -13,7 +13,7 @@ return new class extends Migration
             $t->string('name');
             $t->string('phone')->unique();
             $t->string('password');
-            $t->string('role')->index(); // farmer | agent | officer | buyer
+            $t->string('role')->index(); // farmer | agent | officer | buyer | admin
             $t->string('buyer_type')->nullable(); // broker | government | company
             $t->string('organization')->nullable();
             $t->string('district')->nullable()->index();

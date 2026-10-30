@@ -10,7 +10,8 @@ const DEMO = [
   { phone: '01700000001', icon: '🧑‍🌾', bn: 'কৃষক', en: 'Farmer' },
   { phone: '01700000002', icon: '🎒', bn: 'এজেন্ট', en: 'Agent' },
   { phone: '01700000003', icon: '🔬', bn: 'কর্মকর্তা', en: 'Officer' },
-  { phone: '01700000004', icon: '🏛️', bn: 'ক্রেতা', en: 'Buyer' },
+  { phone: '01700000004', icon: '🛒', bn: 'ক্রেতা', en: 'Buyer' },
+  { phone: '01700000007', icon: '🏛️', bn: 'প্রশাসক', en: 'Admin' },
 ]
 
 export default function LoginPage() {
@@ -89,7 +90,7 @@ export default function LoginPage() {
         {mode === 'login' && (
           <div>
             <div className="sub small" style={{ textAlign: 'center', marginBottom: 8 }}>{t('ডেমো হিসেবে দেখুন', 'Try a demo account')}</div>
-            <div className="grid-2" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            <div className="grid-2" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
               {DEMO.map((d) => (
                 <button type="button" key={d.phone} className="btn soft small" style={{ flexDirection: 'column', gap: 0, padding: '8px 2px', minHeight: 62, fontSize: 12 }} disabled={busy} onClick={() => enter('/auth/login', { phone: d.phone, password: 'password' })}>
                   <span style={{ fontSize: 22 }} aria-hidden>{d.icon}</span>{t(d.bn, d.en)}

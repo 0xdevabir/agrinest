@@ -64,6 +64,11 @@ const TABS: Record<Role, { href: string; icon: string; bn: string; en: string }[
     { href: '/reviews', icon: '🔬', bn: 'রিভিউ', en: 'Reviews' },
     { href: '/profile', icon: '👤', bn: 'প্রোফাইল', en: 'Profile' },
   ],
+  admin: [
+    { href: '/', icon: '📊', bn: 'সারা দেশ', en: 'Nationwide' },
+    { href: '/officers', icon: '🏛️', bn: 'কর্মকর্তা', en: 'Officers' },
+    { href: '/profile', icon: '👤', bn: 'প্রোফাইল', en: 'Profile' },
+  ],
   buyer: [
     { href: '/market', icon: '🛒', bn: 'বাজার', en: 'Market' },
     { href: '/profile', icon: '👤', bn: 'প্রোফাইল', en: 'Profile' },
@@ -76,6 +81,7 @@ export function TabBar() {
   if (!user) return null
   return (
     <nav className="tabbar glass" aria-label="Main">
+      <div className="side-brand"><span aria-hidden>🌾</span><b>AgriNest</b></div>
       {TABS[user.role].map((tab) => (
         <Link key={tab.href} href={tab.href} className={path === tab.href ? 'on' : ''}>
           <b aria-hidden>{tab.icon}</b>{t(tab.bn, tab.en)}

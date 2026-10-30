@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api, getToken, setToken } from './api'
 
 export type Lang = 'bn' | 'en'
-export type Role = 'farmer' | 'agent' | 'officer' | 'buyer'
+export type Role = 'farmer' | 'agent' | 'officer' | 'buyer' | 'admin'
 export type User = { id: number; name: string; phone: string; role: Role; buyer_type?: string; organization?: string; district?: string; upazila?: string; village?: string; xp: number }
 
 type Ctx = {

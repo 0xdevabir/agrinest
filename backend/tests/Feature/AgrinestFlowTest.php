@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Field;
+use App\Models\Listing;
+use App\Models\Offer;
+use App\Models\Scan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -31,6 +34,49 @@ class AgrinestFlowTest extends TestCase
             '*/v1/reverse-geocode*' => Http::response(['data' => []]),
             '*/chat/completions' => Http::response(['error' => ['code' => 'invalid_api_key']], 401),
         ]);
+    }
+
+    public function test_national_admin_sees_totals_and_officer_performance_but_cannot_be_self_registered(): void
+    {
+        $this->postJson('/api/auth/register', ['name' => 'X', 'phone' => '0198', 'password' => 'secret12', 'role' => 'admin', 'district' => 'Dhaka'])
+            ->assertStatus(422);
+
+        $farmer = $this->user('farmer');
+        $buyer = $this->user('buyer', ['buyer_type' => 'government']);
+        $officer = $this->user('officer');
+        $vacant = $this->user('farmer', ['district' => 'Barishal']);
+
+        Sanctum::actingAs($farmer);
+        $fieldId = $this->postJson('/api/fields', ['name' => 'Plot', 'points' => self::POINTS])->assertSuccessful()->json('field.id');
+        $this->postJson("/api/fields/$fieldId/plant", ['crop' => 'rice', 'sown_on' => today()->subDays(10)->toDateString()])->assertSuccessful();
+
+        $listing = Listing::create(['farmer_id' => $farmer->id, 'crop' => 'rice', 'quantity_kg' => 100, 'price_per_kg' => 30, 'district' => 'Mymensingh']);
+        Offer::create(['listing_id' => $listing->id, 'buyer_id' => $buyer->id, 'farmer_id' => $farmer->id, 'turn_user_id' => $farmer->id, 'quantity_kg' => 100, 'price_per_kg' => 30, 'status' => 'accepted']);
+
+        $late = Scan::create(['field_id' => $fieldId, 'submitted_by' => $farmer->id, 'ai' => []]);
+        $late->forceFill(['created_at' => now()->subDays(5)])->save();
+
+        foreach ([$farmer, $officer, $buyer] as $notAdmin) {
+            Sanctum::actingAs($notAdmin);
+            $this->getJson('/api/dashboard/national')->assertForbidden();
+        }
+
+        $admin = $this->user('admin', ['district' => null]);
+        Sanctum::actingAs($admin);
+        $data = $this->getJson('/api/dashboard/national')->assertOk()->json();
+
+        $this->assertSame(3000, (int) $data['totals']['sold_value']);
+        $this->assertSame(3000, (int) $data['totals']['government_value']);
+        $this->assertSame(1, $data['totals']['overdue']);
+        $this->assertSame(1, $data['totals']['uncovered_districts']);
+        $this->assertSame('rice', $data['crops'][0]['id']);
+        $this->assertSame(30, (int) $data['crops'][0]['avg_price']);
+        $this->assertSame($officer->id, $data['officers'][0]['id']);
+        $this->assertTrue($data['officers'][0]['behind']);
+        $this->assertStringNotContainsString($vacant->phone, json_encode($data));
+
+        // Monitoring only: no access to an individual farmer's land.
+        $this->getJson("/api/fields/$fieldId")->assertForbidden();
     }
 
     private function user(string $role, array $extra = []): User

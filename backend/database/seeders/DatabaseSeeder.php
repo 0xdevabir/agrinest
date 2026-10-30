@@ -13,14 +13,80 @@ use App\Models\User;
 use App\Services\Geo;
 use Illuminate\Database\Seeder;
 
-/** Demo world around Mymensingh. All demo accounts use the password "password". */
+/** Demo world: Mymensingh in detail, plus other districts for the national view. All demo accounts use the password "password". */
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        if (User::where('phone', '01700000001')->exists()) {
-            return;
+        if (! User::where('phone', '01700000001')->exists()) {
+            $this->mymensingh();
         }
+        if (! User::where('phone', '01700000007')->exists()) {
+            $this->nation();
+        }
+    }
+
+    /** A national admin, and districts whose officers are ahead, behind or missing. */
+    private function nation(): void
+    {
+        User::create(['name' => 'Farhana Rahman', 'phone' => '01700000007', 'password' => 'password', 'role' => 'admin', 'organization' => 'Ministry of Agriculture']);
+
+        $buyer = User::where('phone', '01700000004')->first();
+        $broker = User::where('phone', '01700000006')->first();
+        $mymensinghOfficer = User::where('phone', '01700000003')->first();
+
+        // district, officer (null = post vacant), lng, lat, crop, overdue scans, deals as [crop, kg, price, days ago, buyer]
+        $places = [
+            ['Rajshahi', 'Tanvir Ahmed', 88.60, 24.37, 'wheat', 0, [['potato', 6000, 26, 4, $broker], ['rice', 12000, 31, 12, $buyer], ['potato', 3000, 24, 33, $broker]]],
+            ['Rangpur', 'Shirin Akter', 89.25, 25.74, 'potato', 3, [['potato', 15000, 23, 8, $broker], ['maize', 8000, 27, 22, $broker]]],
+            ['Jashore', 'Mahmud Hasan', 89.21, 23.17, 'rice', 1, [['rice', 18000, 32, 2, $buyer], ['jute', 2500, 58, 18, $broker], ['rice', 9000, 30, 40, $buyer]]],
+            ['Sylhet', 'Rumana Begum', 91.87, 24.89, 'rice', 0, [['rice', 5000, 33, 26, $buyer]]],
+            ['Barishal', null, 90.35, 22.70, 'rice', 2, [['rice', 4000, 29, 15, $broker]]],
+        ];
+
+        foreach ($places as $i => [$district, $officerName, $lng, $lat, $crop, $overdue, $deals]) {
+            $n = 10 + $i * 3;
+            $base = ['password' => 'password', 'district' => $district];
+            $officer = $officerName ? User::create($base + ['name' => $officerName, 'phone' => '017000000'.$n, 'role' => 'officer', 'organization' => "DAE $district"]) : null;
+            $farmer = User::create($base + ['name' => "$district Farmer", 'phone' => '017000000'.($n + 1), 'role' => 'farmer']);
+            $by = $farmer;
+
+            $plots = [];
+            foreach ([0, 1] as $p) {
+                $x = $lng + $p * 0.006;
+                $plots[] = $this->field($farmer, $by, "$district Plot ".($p + 1), [[$x, $lat + 0.004], [$x + 0.004, $lat + 0.004], [$x + 0.004, $lat], [$x, $lat]], $crop, 40 + $p * 20);
+            }
+
+            if ($officer) {
+                $done = $this->scan($plots[0], $by, 'none', 'healthy', $officer);
+                $done->forceFill(['created_at' => now()->subHours(6 + $i * 9), 'reviewed_at' => now()->subHours($i)])->save();
+                Guidance::create(['field_id' => $plots[0]->id, 'officer_id' => $officer->id, 'scan_id' => $done->id, 'title' => 'নিয়মিত জমি দেখুন', 'body' => 'ফসল ভালো আছে। সপ্তাহে একবার পাতা পরীক্ষা করুন।']);
+            }
+            for ($k = 1; $k <= $overdue; $k++) {
+                $this->scan($plots[1], $by, $k === 1 ? 'high' : 'medium', 'unknown', null)->forceFill(['created_at' => now()->subDays(3 + $k * 2)])->save();
+            }
+
+            foreach ($deals as [$dealCrop, $kg, $price, $daysAgo, $dealBuyer]) {
+                $this->sale($farmer, $dealBuyer, $dealCrop, $kg, $price, $daysAgo);
+            }
+        }
+
+        $abir = User::where('phone', '01700000001')->first();
+        $this->sale($abir, $buyer, 'rice', 2000, 31, 6);
+        $this->sale($abir, $broker, 'mustard', 300, 80, 20);
+        $this->scan(Field::where('name', 'East Plot')->first(), $abir, 'none', 'healthy', $mymensinghOfficer)->forceFill(['created_at' => now()->subHours(20), 'reviewed_at' => now()->subHours(3)])->save();
+    }
+
+    private function sale(User $farmer, User $buyer, string $crop, int $kg, int $price, int $daysAgo): void
+    {
+        $listing = Listing::create(['farmer_id' => $farmer->id, 'crop' => $crop, 'quantity_kg' => 0, 'price_per_kg' => $price, 'district' => $farmer->district]);
+        $listing->forceFill(['status' => 'sold'])->save();
+        $offer = Offer::create(['listing_id' => $listing->id, 'buyer_id' => $buyer->id, 'farmer_id' => $farmer->id, 'turn_user_id' => $farmer->id, 'quantity_kg' => $kg, 'price_per_kg' => $price, 'status' => 'accepted']);
+        $offer->forceFill(['updated_at' => now()->subDays($daysAgo)])->saveQuietly();
+    }
+
+    private function mymensingh(): void
+    {
 
         $base = ['password' => 'password', 'district' => 'Mymensingh', 'upazila' => 'Trishal', 'village' => 'Boira'];
         $agent = User::create($base + ['name' => 'Karim Agent', 'phone' => '01700000002', 'role' => 'agent', 'xp' => 0]);

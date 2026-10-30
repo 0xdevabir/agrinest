@@ -9,6 +9,7 @@ A map-first farming platform for Bangladesh. Farmers see their own land on satel
 | **Farmer** | Their land on the map | Mark land, record crops, send photos, follow guidance, sell |
 | **Agent** | Today's visits | Add farmers and land, take photos on their behalf |
 | **Officer** | Area map with filters | Open any land, review scans, send personal guidance |
+| **National admin** | Nationwide totals | Monitor crops, sales, districts and officer performance (read-only, no individual farmer data) |
 | **Government / broker** | Market | Post what they want to buy, bid, negotiate |
 
 ## Features
@@ -51,6 +52,14 @@ The password for all of them is `password`. The login page also has one-tap demo
 | Government buyer | 01700000004 |
 | Farmer (Rahim) | 01700000005 |
 | Broker | 01700000006 |
+| National admin | 01700000007 |
+
+Real government accounts are created on the server, never through sign-up:
+
+```bash
+php artisan agrinest:provision admin 01XXXXXXXXX "Full Name" --organization="Ministry of Agriculture"
+php artisan agrinest:provision officer 01XXXXXXXXX "Full Name" --district=Rajshahi
+```
 
 ## Environment
 

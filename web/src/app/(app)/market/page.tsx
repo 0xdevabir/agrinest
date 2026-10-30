@@ -91,7 +91,7 @@ export default function MarketPage() {
           <h1 className="large-title">{t('বাজার', 'Market')}</h1>
           <p>{isFarmer ? t('ক্রেতা খুঁজুন, দরদাম করে ফসল বিক্রি করুন', 'Find buyers and agree a price for your crop') : t('কৃষকের কাছ থেকে সরাসরি ফসল কিনুন', 'Buy crops directly from farmers')}</p>
         </div>
-        <button className="btn" onClick={() => setCreating(true)}>➕ {isFarmer ? t('ফসল বিক্রি', 'Sell crop') : t('কেনার পোস্ট', 'Buy post')}</button>
+        <button className="btn" onClick={() => setCreating(true)}>+ {isFarmer ? t('ফসল বিক্রি', 'Sell crop') : t('কেনার পোস্ট', 'Buy post')}</button>
       </header>
 
       <div className="market-body">

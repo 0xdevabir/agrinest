@@ -15,6 +15,7 @@ const ROLE: Record<string, [string, string]> = {
   agent: ['মাঠ এজেন্ট', 'Field agent'],
   officer: ['কৃষি কর্মকর্তা', 'Agriculture officer'],
   buyer: ['ক্রেতা', 'Buyer'],
+  admin: ['জাতীয় প্রশাসক', 'National admin'],
 }
 
 export default function ProfilePage() {

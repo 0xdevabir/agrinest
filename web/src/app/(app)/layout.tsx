@@ -12,5 +12,5 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => { if (ready && !user) router.replace('/login') }, [ready, user, router])
 
   if (!user) return <div className="login bg-brand" />
-  return <>{children}<TabBar /></>
+  return <><div className="app-main">{children}</div><TabBar /></>
 }
