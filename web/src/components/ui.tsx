@@ -35,6 +35,20 @@ export function Sheet({ title, subtitle, onClose, children, overMap }: { title: 
   )
 }
 
+/** Shows where the user is in a multi-step flow and what to do next. */
+export function StepBar({ step, total, title, hint }: { step: number; total: number; title: ReactNode; hint?: ReactNode }) {
+  const { t, num } = useApp()
+  return (
+    <div className="stepbar">
+      <div className="dots" aria-hidden>{Array.from({ length: total }, (_, i) => <i key={i} className={i + 1 < step ? 'done' : i + 1 === step ? 'now' : ''} />)}</div>
+      <div className="grow">
+        <b>{t('ধাপ', 'Step')} {num(step)}/{num(total)} · {title}</b>
+        {hint && <div className="sub small">{hint}</div>}
+      </div>
+    </div>
+  )
+}
+
 export function HealthPill({ status }: { status: Health }) {
   const { t } = useApp()
   const h = HEALTH[status]

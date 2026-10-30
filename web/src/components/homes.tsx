@@ -6,7 +6,8 @@ import { useApp, useData } from '@/lib/app'
 import { HEALTH, type Field, type Health, type Localized } from '@/lib/types'
 import { MapStage, type StageHandle } from './MapStage'
 import { TabGlyph } from './tab-icons'
-import { Sheet, kg } from './ui'
+import Link from 'next/link'
+import { Sheet, StepBar, kg } from './ui'
 
 type Level = { level: number; xp: number; floor: number; next: number; pct: number }
 type Quest = Localized & { id: string; type: 'add_land' | 'guidance' | 'plant' | 'harvest' | 'scan'; points: number; field_id: number | null; urgent?: boolean }
@@ -139,7 +140,7 @@ export function AgentHome() {
   const [picking, setPicking] = useState(false)
 
   return (
-    <MapStage ref={stage} fields={data?.fields ?? []} onChange={reload} showFarmer drawing={drawing} onDrawingChange={setDrawing} drawFarmerId={farmerId}>
+    <MapStage ref={stage} fields={data?.fields ?? []} onChange={reload} showFarmer drawing={drawing} onDrawingChange={setDrawing} drawFarmerId={farmerId} drawFarmerName={data?.farmers.find((f) => f.id === farmerId)?.name}>
       <div className="hud-top">
         <div className="glass hud-pill grow row between">
           <div><b>{t('আজকের ভিজিট', "Today's visits")}</b><div className="sub small">{num(data?.stats.due ?? 0)} {t('জমি বাকি', data?.stats.due === 1 ? 'land due' : 'lands due')} · {num(data?.stats.scans_today ?? 0)} {t('স্ক্যান হয়েছে', 'scanned')}</div></div>
@@ -148,17 +149,20 @@ export function AgentHome() {
       </div>
 
       {picking && (
-        <div className="hud-bottom" style={{ zIndex: 12 }}>
-          <div className="quests">
+        <Sheet overMap title={t('জমি যোগ করুন', 'Add land')} onClose={() => setPicking(false)}>
+          <StepBar step={1} total={4} title={t('কৃষক বেছে নিন', 'Choose the farmer')} hint={t('কার জমি? নাম ট্যাপ করুন, তারপর মানচিত্রে জমি আঁকবেন', 'Whose land is it? Tap a name, then draw it on the map')} />
+          <div className="group">
             {(data?.farmers ?? []).map((f) => (
-              <button key={f.id} className="quest glass" onClick={() => { setFarmerId(f.id); setPicking(false); setDrawing(true) }}>
+              <button key={f.id} className="cell" onClick={() => { setFarmerId(f.id); setPicking(false); setDrawing(true) }}>
                 <span className="icon-tile" aria-hidden>🧑‍🌾</span>
-                <span className="grow"><b>{f.name}</b><div className="sub small truncate">{t('জমি আঁকুন', 'Draw land for them')}</div></span>
+                <span className="grow"><b>{f.name}</b><div className="sub small truncate">{[f.village, `${num(f.fields_count)} ${t('টি জমি', 'lands')}`].filter(Boolean).join(' · ')}</div></span>
+                <span aria-hidden>›</span>
               </button>
             ))}
-            {data && !data.farmers.length && <div className="quest glass" style={{ cursor: 'default' }}>{t('আগে কৃষক যোগ করুন', 'Add a farmer first')}</div>}
           </div>
-        </div>
+          {data && !data.farmers.length && <div className="sub">{t('এখনো কোনো কৃষক নেই। আগে কৃষক নিবন্ধন করুন, তারপর জমি যোগ করুন।', 'No farmers yet. Register a farmer first, then add their land.')}</div>}
+          <Link href="/farmers" className="btn soft block">➕ {t('নতুন কৃষক নিবন্ধন করুন', 'Register a new farmer')}</Link>
+        </Sheet>
       )}
       {!picking && (
         <div className="hud-bottom">

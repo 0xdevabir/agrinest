@@ -6,7 +6,7 @@ import { useApp } from '@/lib/app'
 import type { Field } from '@/lib/types'
 import { FarmMap, type MapHandle } from './FarmMap'
 import { FieldSheet, type FieldIntent } from './FieldSheet'
-import { Sheet } from './ui'
+import { Sheet, StepBar } from './ui'
 
 export type StageHandle = { open: (id: number, intent?: FieldIntent) => void; fitAll: () => void }
 
@@ -18,6 +18,7 @@ type Props = {
   drawing?: boolean
   onDrawingChange?: (v: boolean) => void
   drawFarmerId?: number | null
+  drawFarmerName?: string
 }
 
 /** On-screen estimate only; the server computes the stored area. */
@@ -33,12 +34,15 @@ function roughAcres(pts: number[][]) {
   return Math.abs(sum) / 2 / 4046.86
 }
 
-export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ fields, onChange, children, showFarmer, drawing: adding, onDrawingChange, drawFarmerId }, ref) {
+export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ fields, onChange, children, showFarmer, drawing: adding, onDrawingChange, drawFarmerId, drawFarmerName }, ref) {
   const { t, num, toast } = useApp()
   const map = useRef<MapHandle>(null)
   const [selected, setSelected] = useState<{ id: number; intent?: FieldIntent } | null>(null)
   const [redrawId, setRedrawId] = useState<number | null>(null)
   const drawing = !!adding || redrawId !== null
+  // The agent picks a farmer first, so adding land has one more step for them.
+  const lead = drawFarmerId ? 1 : 0
+  const total = 3 + lead
   const [points, setPoints] = useState<number[][]>([])
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')
@@ -97,7 +101,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
       setName('')
       onDrawingChange?.(false)
       await onChange()
-      toast(`🎉 ${t('জমি যোগ হয়েছে!', 'Land added!')} +${num(50)} XP`)
+      toast(`🎉 ${t('জমি যোগ হয়েছে! এখন ফসল যোগ করুন', 'Land added! Now add the crop')} +${num(50)} XP`)
       setSelected({ id: data.field.id, intent: 'plant' })
     } catch (e) {
       toast((e as Error).message)
@@ -155,8 +159,17 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
               </div>
             )}
           </div>
-          <div className="draw-hint glass" style={{ top: 'calc(env(safe-area-inset-top) + 124px)' }}>
-            {points.length < 3 ? t('জমির প্রতিটি কোনায় ট্যাপ করুন', 'Tap each corner of your land') : `≈ ${num(Math.round(roughAcres(points) * 100) / 100)} ${t('একর', 'acres')}`}
+          <div className="draw-hint steps glass" style={{ top: 'calc(env(safe-area-inset-top) + 124px)' }}>
+            {redrawId !== null
+              ? (points.length < 3 ? t('নতুন সীমানার প্রতিটি কোনায় ট্যাপ করুন', 'Tap each corner of the new boundary') : `≈ ${num(Math.round(roughAcres(points) * 100) / 100)} ${t('একর', 'acres')} · ${t('ঠিক থাকলে "সংরক্ষণ" চাপুন', 'Press "Save" if it looks right')}`)
+              : <StepBar
+                  step={1 + lead}
+                  total={total}
+                  title={t('জমি আঁকুন', 'Draw the land')}
+                  hint={points.length < 3
+                    ? `${drawFarmerName ? `${drawFarmerName}: ` : ''}${t(`জমির প্রতিটি কোনায় ট্যাপ করুন (কমপক্ষে ৩টি) · ${num(points.length)} দেওয়া হয়েছে`, `Tap each corner of the land (at least 3) · ${points.length} placed`)}`
+                    : `≈ ${num(Math.round(roughAcres(points) * 100) / 100)} ${t('একর', 'acres')} · ${t('ঠিক থাকলে "পরের ধাপ" চাপুন', 'Looks right? Press "Next"')}`}
+                />}
           </div>
           <div className="hud-bottom" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)', padding: '0 12px' }}>
             <div className="glass row" style={{ padding: 8, borderRadius: 20, maxWidth: 480, margin: '0 auto' }}>
@@ -172,6 +185,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
 
       {naming && (
         <Sheet title={t('জমির নাম দিন', 'Name this land')} onClose={() => setNaming(false)}>
+          <StepBar step={2 + lead} total={total} title={t('নাম দিন', 'Name it')} hint={t('চেনার জন্য একটি নাম দিন, তারপর সংরক্ষণ করুন', 'Give it a name you will recognise, then save')} />
           <input className="input" autoFocus maxLength={80} placeholder={t('যেমন: পুকুর পাড়ের জমি', 'e.g. Pond-side plot')} value={name} onChange={(e) => setName(e.target.value)} />
           <button className="btn block" disabled={busy || !name.trim()} onClick={save}>{busy ? '…' : t('জমি সংরক্ষণ করুন', 'Save land')}</button>
         </Sheet>
