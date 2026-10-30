@@ -1,13 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Empty, Segmented, Sheet, Skeletons, dateLabel, kg } from '@/components/ui'
+import { useEffect, useMemo, useState } from 'react'
+import { Empty, HealthPill, Segmented, Sheet, dateLabel, kg } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
-import type { Crop, Localized } from '@/lib/types'
+import type { Crop, Health, Localized } from '@/lib/types'
 
 type Base = Localized & { id: number; crop: string; emoji: string; quantity_kg: number; price_per_kg: number; reference_price: number; district?: string; note?: string; mine: boolean; offers_count: number }
-type Listing = Base & { farmer: string; health_status?: string }
+type Listing = Base & { farmer: string; health_status?: Health }
 type BuyPost = Base & { buyer: string; buyer_type?: string; needed_by?: string }
 type Offer = {
   id: number; source: 'listing' | 'buy_post'; crop_en: string; crop_bn: string; emoji: string
@@ -17,104 +17,162 @@ type Offer = {
 }
 type Board = { listings: Listing[]; buy_posts: BuyPost[]; offers: Offer[] }
 type Tab = 'listings' | 'buy_posts' | 'offers'
+type Sort = 'new' | 'low' | 'high'
 type Target = { kind: 'listing' | 'post'; item: Base; title: string }
 
 const IMAGES = new Set(['rice', 'potato', 'tomato', 'brinjal', 'onion'])
+
+/** Deals get their own column on big screens, so the Deals tab only exists below this width. */
+function useWide() {
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1180px)')
+    const update = () => setWide(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+  return wide
+}
 
 export default function MarketPage() {
   const { t, pick, num, user, toast } = useApp()
   const { data, error, reload } = useData<Board>('/market')
   const isFarmer = user?.role === 'farmer'
-  const [tab, setTab] = useState<Tab>(isFarmer ? 'buy_posts' : 'listings')
+  const wide = useWide()
+  const mainTab: Tab = isFarmer ? 'buy_posts' : 'listings'
+  const [tab, setTab] = useState<Tab>(mainTab)
+  const [crop, setCrop] = useState<string | null>(null)
+  const [sort, setSort] = useState<Sort>('new')
   const [target, setTarget] = useState<Target | null>(null)
   const [creating, setCreating] = useState(false)
   const [offer, setOffer] = useState<Offer | null>(null)
 
-  const waiting = useMemo(() => data?.offers.filter((o) => o.my_turn).length ?? 0, [data])
+  const view: Tab = wide && tab === 'offers' ? mainTab : tab
+  const items: Base[] = view === 'listings' ? data?.listings ?? [] : view === 'buy_posts' ? data?.buy_posts ?? [] : []
+
+  const crops = useMemo(() => {
+    const seen = new Map<string, Base & { count: number }>()
+    items.forEach((b) => seen.set(b.crop, { ...b, count: (seen.get(b.crop)?.count ?? 0) + 1 }))
+    return [...seen.values()].sort((a, b) => b.count - a.count)
+  }, [items])
+  // A crop chosen on one tab may have no lots on the next.
+  const activeCrop = crops.some((c) => c.crop === crop) ? crop : null
+
+  const shown = useMemo(() => {
+    const list = items.filter((b) => !activeCrop || b.crop === activeCrop)
+    if (sort === 'low') return [...list].sort((a, b) => a.price_per_kg - b.price_per_kg)
+    if (sort === 'high') return [...list].sort((a, b) => b.price_per_kg - a.price_per_kg)
+    return list
+  }, [items, activeCrop, sort])
+
+  const deals = useMemo(() => {
+    const rank = (o: Offer) => (o.status !== 'pending' ? 2 : o.my_turn ? 0 : 1)
+    return [...(data?.offers ?? [])].sort((a, b) => rank(a) - rank(b))
+  }, [data])
+  const waiting = deals.filter((o) => o.status === 'pending' && o.my_turn).length
 
   const close = async (path: string) => {
     try { await api(path, { method: 'POST' }); await reload() } catch (e) { toast((e as Error).message) }
   }
 
-  const unit = (v: number) => `৳${num(v)}/${t('কেজি', 'kg')}`
-
-  const priceHint = (b: Base) => {
-    const diff = Math.round(((b.price_per_kg - b.reference_price) / b.reference_price) * 100)
-    if (Math.abs(diff) < 3) return t('বাজার দরের কাছাকাছি', 'Near usual price')
-    return diff > 0 ? `${t('সাধারণ দরের', 'Above usual by')} ${num(diff)}%${t(' বেশি', '')}` : `${t('সাধারণ দরের', 'Below usual by')} ${num(-diff)}%${t(' কম', '')}`
-  }
-
-  const card = (b: Base, who: string, sub: string | null, kind: 'listing' | 'post') => (
-    <div className="card stack" key={`${kind}-${b.id}`}>
-      <div className="market-img" style={IMAGES.has(b.crop) ? { backgroundImage: `url(/crops/${b.crop}.jpg)` } : undefined}>{!IMAGES.has(b.crop) && <span aria-hidden>{b.emoji}</span>}</div>
-      <div className="row between">
-        <b style={{ fontSize: 18 }}>{pick(b)}</b>
-        <b style={{ color: 'var(--sage)', fontSize: 18 }}>{unit(b.price_per_kg)}</b>
-      </div>
-      <div className="row between sub small">
-        <span>{kg(b.quantity_kg, num, t)} · {who}{b.district ? ` · ${b.district}` : ''}</span>
-        <span style={{ whiteSpace: 'nowrap' }}>{priceHint(b)}</span>
-      </div>
-      {sub && <div className="sub small">{sub}</div>}
-      {b.note && <div className="small">{b.note}</div>}
-      {b.mine ? (
-        <div className="row between">
-          <span className="sub small">{num(b.offers_count)} {t('টি প্রস্তাব', 'offers')}</span>
-          <button className="btn small danger" onClick={() => close(kind === 'listing' ? `/listings/${b.id}/close` : `/buy-posts/${b.id}/close`)}>{t('বন্ধ করুন', 'Close')}</button>
-        </div>
-      ) : (
-        ((kind === 'listing' && !isFarmer) || (kind === 'post' && isFarmer)) && (
-          <button className="btn block" onClick={() => setTarget({ kind, item: b, title: pick(b) })}>{kind === 'listing' ? t('দর দিন', 'Place a bid') : t('বিক্রি করতে চাই', 'Offer to sell')}</button>
-        )
-      )}
-    </div>
-  )
-
   const tabs: { id: Tab; label: string }[] = [
     { id: 'buy_posts', label: t('কিনতে চাই', 'Buy posts') },
     { id: 'listings', label: t('বিক্রি হবে', 'For sale') },
-    { id: 'offers', label: `${t('দরদাম', 'Deals')}${waiting ? ` (${num(waiting)})` : ''}` },
+    ...(wide ? [] : [{ id: 'offers' as Tab, label: `${t('দরদাম', 'Deals')}${waiting ? ` (${num(waiting)})` : ''}` }]),
   ]
 
-  return (
-    <div className="page">
-      <div className="row between" style={{ marginBottom: 14 }}>
-        <h1 className="large-title">{t('বাজার', 'Market')}</h1>
-        <button className="btn small" onClick={() => setCreating(true)}>➕ {isFarmer ? t('ফসল বিক্রি', 'Sell crop') : t('কেনার পোস্ট', 'Buy post')}</button>
-      </div>
-      <Segmented value={tab} onChange={setTab} options={tabs} />
-      <div style={{ height: 14 }} />
-      {error && <div className="notice high" role="alert">{error}</div>}
-      {!data && !error && <Skeletons />}
+  const emptyDeals = <Empty icon="🤝">{isFarmer ? t('কেনার পোস্টে প্রস্তাব দিলে দরদাম এখানে দেখা যাবে', 'Offer to sell on a buy post and your deals appear here') : t('ফসলে দর দিলে দরদাম এখানে দেখা যাবে', 'Bid on a crop and your deals appear here')}</Empty>
 
-      {data && tab === 'listings' && (
-        <div className="stack">
-          {data.listings.map((l) => card(l, l.farmer, null, 'listing'))}
-          {!data.listings.length && <Empty icon="🧺">{t('এখন কোনো ফসল বিক্রির জন্য নেই', 'Nothing for sale right now')}</Empty>}
+  return (
+    <div className="market">
+      <header className="market-hero">
+        <div className="grow">
+          <h1 className="large-title">{t('বাজার', 'Market')}</h1>
+          <p>{isFarmer ? t('ক্রেতা খুঁজুন, দরদাম করে ফসল বিক্রি করুন', 'Find buyers and agree a price for your crop') : t('কৃষকের কাছ থেকে সরাসরি ফসল কিনুন', 'Buy crops directly from farmers')}</p>
         </div>
-      )}
-      {data && tab === 'buy_posts' && (
-        <div className="stack">
-          {data.buy_posts.map((p) => card(p, p.buyer, p.needed_by ? `${t('দরকার', 'Needed by')} ${dateLabel(p.needed_by, 'bn' === t('bn', 'en') ? 'bn' : 'en')}` : null, 'post'))}
-          {!data.buy_posts.length && <Empty icon="📭">{t('এখন কোনো কেনার পোস্ট নেই', 'No buy posts right now')}</Empty>}
-        </div>
-      )}
-      {data && tab === 'offers' && (
-        data.offers.length ? (
+        <button className="btn" onClick={() => setCreating(true)}>➕ {isFarmer ? t('ফসল বিক্রি', 'Sell crop') : t('কেনার পোস্ট', 'Buy post')}</button>
+      </header>
+
+      <div className="market-body">
+        <aside className="price-board" aria-label={t('ফসল বেছে নিন', 'Choose a crop')}>
+          <h2>{t('ফসল ও সাধারণ দর', 'Crops and usual prices')}</h2>
           <div className="group">
-            {data.offers.map((o) => (
-              <button className="cell" key={o.id} onClick={() => setOffer(o)}>
-                <span className="icon-tile" aria-hidden>{o.emoji}</span>
-                <span className="grow">
-                  <b>{t(o.crop_bn, o.crop_en)}</b> · {kg(o.quantity_kg, num, t)}
-                  <div className="sub small truncate">{isFarmer ? (o.buyer.organization || o.buyer.name) : o.farmer.name} · {unit(o.price_per_kg)}</div>
-                </span>
-                <StatusPill offer={o} />
+            <button className="cell" aria-pressed={!activeCrop} onClick={() => setCrop(null)}>
+              <span className="icon-tile" aria-hidden>🧺</span>
+              <b className="grow">{t('সব ফসল', 'All crops')}</b>
+              <span className="sub">{num(items.length)}</span>
+            </button>
+            {crops.map((c) => (
+              <button className="cell" key={c.crop} aria-pressed={activeCrop === c.crop} onClick={() => setCrop(c.crop)}>
+                <span className="icon-tile" aria-hidden>{c.emoji}</span>
+                <span className="grow"><b>{pick(c)}</b><div className="sub small">৳{num(c.reference_price)}/{t('কেজি', 'kg')}</div></span>
+                <span className="sub">{num(c.count)}</span>
               </button>
             ))}
           </div>
-        ) : <Empty icon="🤝">{t('এখনো কোনো দরদাম নেই', 'No deals yet')}</Empty>
-      )}
+          <p className="sub small">{t('সাধারণ দর মোটামুটি হিসাব। আজকের বাজার যাচাই করুন।', "Usual prices are rough figures. Check today's market.")}</p>
+        </aside>
+
+        <main className="market-main">
+          <div className="market-tabs"><Segmented value={view} onChange={setTab} options={tabs} /></div>
+
+          {!wide && waiting > 0 && view !== 'offers' && (
+            <button className="notice warn deals-alert" onClick={() => setTab('offers')}>
+              <span aria-hidden>🤝</span><b className="grow">{num(waiting)} {t('টি দরদামে আপনার উত্তর দরকার', waiting === 1 ? 'deal needs your answer' : 'deals need your answer')}</b><span aria-hidden>›</span>
+            </button>
+          )}
+
+          {error && <div className="notice high" role="alert">{error}</div>}
+          {!data && !error && <div className="lots">{[0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 240 }} />)}</div>}
+
+          {data && view !== 'offers' && (
+            <>
+              <div className="market-tools">
+                {crops.length > 1 && (
+                  <div className="chips market-chips">
+                    <button className={`chip${activeCrop ? '' : ' on'}`} aria-pressed={!activeCrop} onClick={() => setCrop(null)}>{t('সব', 'All')}</button>
+                    {crops.map((c) => <button key={c.crop} className={`chip${activeCrop === c.crop ? ' on' : ''}`} aria-pressed={activeCrop === c.crop} onClick={() => setCrop(c.crop)}>{c.emoji} {pick(c)}</button>)}
+                  </div>
+                )}
+                <div className="row between">
+                  <span className="sub">{num(shown.length)} {t('টি', shown.length === 1 ? 'lot' : 'lots')}</span>
+                  <select className="market-sort" aria-label={t('সাজান', 'Sort')} value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+                    <option value="new">{t('নতুন আগে', 'Newest first')}</option>
+                    <option value="low">{t('কম দাম আগে', 'Lowest price first')}</option>
+                    <option value="high">{t('বেশি দাম আগে', 'Highest price first')}</option>
+                  </select>
+                </div>
+              </div>
+
+              {shown.length > 0 ? (
+                <div className={`lots${shown.length === 1 ? ' one' : ''}`}>
+                  {shown.map((b) => (
+                    <Lot
+                      key={b.id}
+                      item={b}
+                      kind={view === 'listings' ? 'listing' : 'post'}
+                      isFarmer={isFarmer}
+                      onAct={() => setTarget({ kind: view === 'listings' ? 'listing' : 'post', item: b, title: pick(b) })}
+                      onClose={() => close(view === 'listings' ? `/listings/${b.id}/close` : `/buy-posts/${b.id}/close`)}
+                    />
+                  ))}
+                </div>
+              ) : view === 'listings'
+                ? <Empty icon="🧺">{t('এখন কোনো ফসল বিক্রির জন্য নেই', 'Nothing for sale right now')}</Empty>
+                : <Empty icon="📭">{t('এখন কোনো কেনার পোস্ট নেই', 'No buy posts right now')}</Empty>}
+            </>
+          )}
+
+          {data && view === 'offers' && (deals.length ? <DealList deals={deals} isFarmer={isFarmer} onOpen={setOffer} /> : emptyDeals)}
+        </main>
+
+        <aside className="deals-rail" aria-label={t('দরদাম', 'Deals')}>
+          <h2>{t('দরদাম', 'Deals')}{waiting > 0 && <span className="xp">{num(waiting)} {t('টি আপনার পালা', 'your turn')}</span>}</h2>
+          {!data && !error && <div className="skeleton" style={{ height: 180 }} />}
+          {data && (deals.length ? <DealList deals={deals} isFarmer={isFarmer} onOpen={setOffer} /> : emptyDeals)}
+        </aside>
+      </div>
 
       {target && (
         <TermsSheet
@@ -122,6 +180,7 @@ export default function MarketPage() {
           subtitle={target.title}
           quantity={target.item.quantity_kg}
           price={target.item.price_per_kg}
+          reference={target.item.reference_price}
           onClose={() => setTarget(null)}
           onSubmit={async (terms) => {
             await api(target.kind === 'listing' ? `/listings/${target.item.id}/bid` : `/buy-posts/${target.item.id}/offer`, { body: terms })
@@ -138,6 +197,85 @@ export default function MarketPage() {
   )
 }
 
+/** Where a price sits against the crop's usual price. Sellers want it high, buyers want it low. */
+function PriceGauge({ price, usual, sellerView }: { price: number; usual: number; sellerView: boolean }) {
+  const { t, num } = useApp()
+  const diff = Math.round(((price - usual) / usual) * 100)
+  const near = Math.abs(diff) < 3
+  const good = diff > 0 === sellerView
+  const color = near ? 'var(--ink-2)' : good ? 'var(--healthy)' : 'var(--treat)'
+  const label = near
+    ? t('সাধারণ দরের কাছাকাছি', 'Near the usual price')
+    : diff > 0
+      ? t(`সাধারণ দরের ${num(diff)}% বেশি`, `${diff}% above the usual price`)
+      : t(`সাধারণ দরের ${num(-diff)}% কম`, `${-diff}% below the usual price`)
+  return (
+    <div className="gauge">
+      <div className="gauge-track" aria-hidden><i style={{ left: `${Math.min(96, Math.max(4, 50 + diff))}%`, background: color }} /></div>
+      <div className="small" style={{ color, fontWeight: 600 }}>{label}</div>
+    </div>
+  )
+}
+
+function Lot({ item, kind, isFarmer, onAct, onClose }: { item: Base; kind: 'listing' | 'post'; isFarmer: boolean; onAct: () => void; onClose: () => void }) {
+  const { t, pick, num, lang } = useApp()
+  const listing = kind === 'listing' ? (item as Listing) : null
+  const post = kind === 'post' ? (item as BuyPost) : null
+  const canAct = !item.mine && (kind === 'listing' ? !isFarmer : isFarmer)
+  const health = listing?.health_status
+
+  return (
+    <article className="lot">
+      <div className="lot-photo" style={IMAGES.has(item.crop) ? { backgroundImage: `url(/crops/${item.crop}.jpg)` } : undefined}>{!IMAGES.has(item.crop) && <span aria-hidden>{item.emoji}</span>}</div>
+      <div className="lot-tag"><b>৳{num(item.price_per_kg)}</b><span>/{t('কেজি', 'kg')}</span></div>
+      <div className="lot-head">
+        <h3>{pick(item)}</h3>
+        <PriceGauge price={item.price_per_kg} usual={item.reference_price} sellerView={isFarmer} />
+      </div>
+      <div className="lot-foot">
+        <dl className="lot-facts">
+          <div><dt>{t('পরিমাণ', 'Quantity')}</dt><dd>{kg(item.quantity_kg, num, t)}</dd></div>
+          <div><dt>{t('মোট দাম', 'Total value')}</dt><dd>৳{num(Math.round(item.quantity_kg * item.price_per_kg))}</dd></div>
+          <div><dt>{post ? t('ক্রেতা', 'Buyer') : t('কৃষক', 'Farmer')}</dt><dd>{post?.buyer ?? listing?.farmer}{post?.buyer_type === 'government' && <span className="sub"> ({t('সরকারি', 'government')})</span>}</dd></div>
+          {item.district && <div><dt>{t('জেলা', 'District')}</dt><dd>{item.district}</dd></div>}
+          {post?.needed_by && <div><dt>{t('কবে দরকার', 'Needed by')}</dt><dd>{dateLabel(post.needed_by, lang)}</dd></div>}
+        </dl>
+        {health && health !== 'unknown' && <div><HealthPill status={health} /></div>}
+        {item.note && <p className="small">{item.note}</p>}
+        <div className="lot-action">
+          {item.mine ? (
+            <div className="row between">
+              <span className="sub small">{num(item.offers_count)} {t('টি প্রস্তাব', item.offers_count === 1 ? 'offer' : 'offers')}</span>
+              <button className="btn small danger" onClick={onClose}>{t('বন্ধ করুন', 'Close')}</button>
+            </div>
+          ) : canAct && (
+            <button className="btn block" onClick={onAct}>{kind === 'listing' ? t('দর দিন', 'Place a bid') : t('বিক্রি করতে চাই', 'Offer to sell')}</button>
+          )}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function DealList({ deals, isFarmer, onOpen }: { deals: Offer[]; isFarmer: boolean; onOpen: (o: Offer) => void }) {
+  const { t, num } = useApp()
+  return (
+    <div className="group">
+      {deals.map((o) => (
+        <button className="cell" key={o.id} onClick={() => onOpen(o)}>
+          <span className="icon-tile" aria-hidden>{o.emoji}</span>
+          <span className="grow">
+            <b>{t(o.crop_bn, o.crop_en)}</b>
+            <div className="small">{kg(o.quantity_kg, num, t)}, ৳{num(o.price_per_kg)}/{t('কেজি', 'kg')}</div>
+            <div className="sub small truncate">{isFarmer ? (o.buyer.organization || o.buyer.name) : o.farmer.name}</div>
+          </span>
+          <StatusPill offer={o} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function StatusPill({ offer }: { offer: Offer }) {
   const { t } = useApp()
   if (offer.status === 'accepted') return <span className="pill" style={{ color: 'var(--healthy)', background: 'rgba(79,163,91,.14)' }}>{t('চুক্তি হয়েছে', 'Deal done')}</span>
@@ -147,7 +285,7 @@ function StatusPill({ offer }: { offer: Offer }) {
     : <span className="pill" style={{ color: 'var(--ink-2)', background: 'var(--line)' }}>{t('অপেক্ষায়', 'Waiting')}</span>
 }
 
-function TermsSheet({ title, subtitle, quantity, price, onClose, onSubmit }: { title: string; subtitle?: string; quantity: number; price: number; onClose: () => void; onSubmit: (t: { quantity_kg: number; price_per_kg: number; note: string | null }) => Promise<void> }) {
+function TermsSheet({ title, subtitle, quantity, price, reference, onClose, onSubmit }: { title: string; subtitle?: string; quantity: number; price: number; reference?: number; onClose: () => void; onSubmit: (t: { quantity_kg: number; price_per_kg: number; note: string | null }) => Promise<void> }) {
   const { t, num } = useApp()
   const [q, setQ] = useState(String(quantity))
   const [p, setP] = useState(String(price))
@@ -167,6 +305,7 @@ function TermsSheet({ title, subtitle, quantity, price, onClose, onSubmit }: { t
         <div><label className="lbl" htmlFor="q">{t('পরিমাণ (কেজি)', 'Quantity (kg)')}</label><input id="q" className="input" type="number" inputMode="decimal" min={1} max={quantity} value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <div><label className="lbl" htmlFor="p">{t('দাম (৳/কেজি)', 'Price (৳/kg)')}</label><input id="p" className="input" type="number" inputMode="decimal" min={1} value={p} onChange={(e) => setP(e.target.value)} /></div>
       </div>
+      {reference != null && <div className="sub small">{t('আনুমানিক সাধারণ দর', 'Rough usual price')}: ৳{num(reference)}/{t('কেজি', 'kg')}</div>}
       <div className="card row between"><span className="sub">{t('মোট', 'Total')}</span><b style={{ fontSize: 20 }}>৳{num(Math.round(Number(q) * Number(p)) || 0)}</b></div>
       <input className="input" maxLength={500} placeholder={t('বার্তা (ঐচ্ছিক)', 'Message (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
       {error && <div className="notice high" role="alert">{error}</div>}
@@ -197,7 +336,7 @@ function CreateSheet({ isFarmer, onClose, onDone }: { isFarmer: boolean; onClose
 
   return (
     <Sheet title={isFarmer ? t('ফসল বিক্রি করুন', 'Sell your crop') : t('কেনার পোস্ট দিন', 'Post a buy request')} onClose={onClose}>
-      <div className="chips">
+      <div className="chips" style={{ flexWrap: 'wrap' }}>
         {(data?.crops ?? []).map((c) => <button key={c.id} className={`chip${crop === c.id ? ' on' : ''}`} aria-pressed={crop === c.id} onClick={() => { setCrop(c.id); if (!p) setP(String(c.reference_price)) }}>{c.emoji} {pick(c)}</button>)}
       </div>
       <div className="grid-2">
