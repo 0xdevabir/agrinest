@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
+import { FieldBackdrop } from '@/components/FieldBackdrop'
 import { Segmented } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useApp, type User } from '@/lib/app'
@@ -48,7 +49,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login bg-brand">
+    <div className="login">
+      <FieldBackdrop />
       <div className="login-card" style={{ color: '#fff', marginBottom: 'auto', paddingTop: 'calc(env(safe-area-inset-top) + 8vh)' }}>
         <div className="row between">
           <div style={{ fontSize: 52 }} aria-hidden>🌾</div>
