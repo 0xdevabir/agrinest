@@ -26,7 +26,7 @@ export default function ReviewsPage() {
       <p className="sub">{user?.district ? t(`${user.district} জেলার স্ক্যান`, `Scans from ${user.district}`) : ' '}</p>
 
       {s && (
-        <div className="tiles">
+        <div className="tiles four">
           <Tile label={t('রিভিউ বাকি', 'Waiting')} value={num(s.pending)} />
           <Tile label={t('দেরি হচ্ছে', 'Running late')} value={num(s.overdue)} note={t(`${num(perf.overdue_days)} দিনের বেশি`, `Over ${num(perf.overdue_days)} days`)} />
           <Tile label={t('আজ রিভিউ', 'Reviewed today')} value={num(s.reviewed_today)} />

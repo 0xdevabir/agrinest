@@ -368,6 +368,8 @@ a, button, .chip, .input { touch-action: manipulation; }
 .profile-side { display: grid; gap: 12px; }
 .profile-main { min-width: 0; }
 .profile-main > .tiles:first-child { margin-top: 0; }
+@media (min-width: 640px) { .tiles.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 639px) { .tile:last-child:nth-child(odd) { grid-column: 1 / -1; } }
 .card h2 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
 .badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
 @media (min-width: 900px) {

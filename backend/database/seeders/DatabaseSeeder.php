@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\AuditLog;
 use App\Models\BuyPost;
 use App\Models\CropCycle;
 use App\Models\Field;

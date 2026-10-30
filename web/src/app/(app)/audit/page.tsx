@@ -103,13 +103,13 @@ export default function AuditPage() {
         <>
           <div className="table-wrap card" style={{ marginTop: 12 }}>
             <table>
-              <thead><tr><th>{t('সময়', 'Time')}</th><th>{t('কে', 'Who')}</th><th>{t('কাজ', 'Action')}</th><th>{t('কিসে', 'On')}</th><th>{t('জেলা', 'District')}</th><th>{t('আইপি', 'IP')}</th></tr></thead>
+              <thead><tr><th>{t('সময়', 'Time')}</th><th>{t('কাজ', 'Action')}</th><th>{t('কে', 'Who')}</th><th>{t('কিসে', 'On')}</th><th>{t('জেলা', 'District')}</th><th>{t('আইপি', 'IP')}</th></tr></thead>
               <tbody>
                 {shown.entries.map((e) => (
                   <tr key={e.id} className="row-open" onClick={() => setOpen(e)}>
                     <th scope="row"><button style={{ border: 0, background: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit' }} onClick={(ev) => { ev.stopPropagation(); setOpen(e) }}>{stamp(e.at)}</button></th>
-                    <td>{e.actor ?? <span className="sub">{t('অজানা বা সিস্টেম', 'Unknown or system')}</span>}{e.role && <div className="sub small">{e.role}</div>}</td>
                     <td>{e.action === 'auth.login_failed' ? <span className="flag high">⚠️ {actionLabel(e.action, t)}</span> : actionLabel(e.action, t)}</td>
+                    <td>{e.actor ?? <span className="sub">{t('অজানা বা সিস্টেম', 'Unknown or system')}</span>}{e.role && <div className="sub small">{e.role}</div>}</td>
                     <td>{e.subject ?? '–'}</td>
                     <td>{e.district ?? '–'}</td>
                     <td>{e.ip ?? '–'}</td>

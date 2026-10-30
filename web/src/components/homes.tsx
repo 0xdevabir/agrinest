@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
 import { HEALTH, type Field, type Health, type Localized } from '@/lib/types'
 import { MapStage, type StageHandle } from './MapStage'
+import { TabGlyph } from './tab-icons'
 import { Sheet, kg } from './ui'
 
 type Level = { level: number; xp: number; floor: number; next: number; pct: number }
