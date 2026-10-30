@@ -7,6 +7,7 @@ use App\Models\Field;
 use App\Models\User;
 use App\Services\Agronomy;
 use App\Services\AtlasClient;
+use App\Services\Audit;
 use App\Services\Game;
 use App\Services\Geo;
 use App\Services\Presenter;
@@ -14,6 +15,7 @@ use App\Services\WeatherSync;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class FieldController extends Controller
@@ -95,10 +97,18 @@ class FieldController extends Controller
         return response()->json(['field' => $this->present->field($field->load('activeCycle', 'farmer'))]);
     }
 
-    public function destroy(Request $request, Field $field): JsonResponse
+    public function destroy(Request $request, Field $field, Audit $audit): JsonResponse
     {
         abort_unless($field->isManagedBy($request->user()), 403);
-        $field->delete();
+        // The database cascades these away without model events, so record what goes with the land.
+        DB::transaction(function () use ($field, $audit) {
+            $audit->record('field.history_removed', $field, ['before' => [
+                'scan_ids' => $field->scans()->pluck('id')->all(),
+                'guidance_ids' => $field->guidance()->pluck('id')->all(),
+                'cycles' => $field->cycles()->get(['id', 'crop', 'status', 'sown_on'])->toArray(),
+            ]]);
+            $field->delete();
+        });
 
         return response()->json(['ok' => true]);
     }

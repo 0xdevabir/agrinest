@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CropCycle extends Model
 {
+    use Audited;
+
     protected $fillable = ['field_id', 'crop', 'variety', 'sown_on', 'expected_harvest_on', 'status', 'harvested_on', 'actual_yield_kg'];
 
     protected function casts(): array

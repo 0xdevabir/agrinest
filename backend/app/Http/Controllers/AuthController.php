@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\Audit;
 use App\Services\Game;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,14 +33,18 @@ class AuthController extends Controller
         return response()->json($this->session($user), 201);
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, Audit $audit): JsonResponse
     {
         $data = $request->validate(['phone' => 'required|string', 'password' => 'required|string']);
         $user = User::where('phone', $data['phone'])->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
+            $audit->record('auth.login_failed', context: ['actor' => null, 'label' => $data['phone'], 'district' => $user?->district]);
+
             throw ValidationException::withMessages(['phone' => ['ফোন নম্বর বা পাসওয়ার্ড ভুল।']]);
         }
+
+        $audit->record('auth.login', $user, context: ['actor' => $user]);
 
         return response()->json($this->session($user));
     }
@@ -51,8 +56,9 @@ class AuthController extends Controller
         return response()->json(['user' => $this->userOut($user), 'level' => $game->level($user->xp)]);
     }
 
-    public function logout(Request $request): JsonResponse
+    public function logout(Request $request, Audit $audit): JsonResponse
     {
+        $audit->record('auth.logout', $request->user());
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['ok' => true]);

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AuditLog;
 use App\Models\BuyPost;
 use App\Models\CropCycle;
 use App\Models\Field;
@@ -10,7 +11,9 @@ use App\Models\Listing;
 use App\Models\Offer;
 use App\Models\Scan;
 use App\Models\User;
+use App\Services\Audit;
 use App\Services\Geo;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 
 /** Demo world: Mymensingh in detail, plus other districts for the national view. All demo accounts use the password "password". */
@@ -18,11 +21,55 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        if (! User::where('phone', '01700000001')->exists()) {
-            $this->mymensingh();
+        // Only a brand-new demo gets a sample trail: an existing database's history must never be invented.
+        $fresh = ! User::query()->exists();
+
+        // The demo world backdates its records, so its trail is written afterwards in time order.
+        Model::withoutEvents(function () {
+            if (! User::where('phone', '01700000001')->exists()) {
+                $this->mymensingh();
+            }
+            if (! User::where('phone', '01700000007')->exists()) {
+                $this->nation();
+            }
+        });
+        if ($fresh) {
+            $this->auditTrail();
         }
-        if (! User::where('phone', '01700000007')->exists()) {
-            $this->nation();
+    }
+
+    /** Sample trail derived from the demo records. These rows carry no IP, which marks them as seeded. */
+    private function auditTrail(): void
+    {
+        $rows = [];
+        $add = function ($at, string $action, ?Model $subject, ?User $actor, array $changes = [], array $extra = []) use (&$rows) {
+            $rows[] = [$at, $action, $subject, $changes, ['actor' => $actor, 'at' => $at] + $extra];
+        };
+
+        Scan::with('field', 'submitter', 'reviewer')->get()->each(function (Scan $s) use ($add) {
+            $add($s->created_at, 'scan.created', $s, $s->submitter, ['after' => ['field_id' => $s->field_id, 'status' => 'pending', 'note' => $s->note]]);
+            if ($s->reviewed_at) {
+                $add($s->reviewed_at, 'scan.reviewed', $s, $s->reviewer, ['before' => ['status' => 'pending'], 'after' => ['status' => 'reviewed', 'verdict' => $s->verdict]]);
+            }
+        });
+        Guidance::with('field', 'officer')->get()->each(function (Guidance $g) use ($add) {
+            // Sent in the same moment as its review, when it has one.
+            $at = $g->scan_id ? (Scan::find($g->scan_id)?->reviewed_at ?? $g->created_at) : $g->created_at;
+            $add($at, 'guidance.created', $g, $g->officer, ['after' => ['title' => $g->title, 'priority' => $g->priority]]);
+        });
+        Field::with('farmer')->get()->each(fn (Field $f) => $add($f->created_at->copy()->subDays(45), 'field.created', $f, $f->farmer, ['after' => ['name' => $f->name, 'area_acres' => $f->area_acres]]));
+        Offer::where('status', 'accepted')->with('buyer', 'farmer')->get()->each(fn (Offer $o) => $add($o->updated_at, 'offer.accepted', $o, $o->farmer, ['before' => ['status' => 'pending'], 'after' => ['status' => 'accepted', 'quantity_kg' => $o->quantity_kg, 'price_per_kg' => $o->price_per_kg]], ['label' => "{$o->farmer->name} / {$o->buyer->name}"]));
+        User::whereIn('role', ['officer', 'admin'])->get()->each(function (User $u) use ($add) {
+            foreach ([1, 4, 9] as $days) {
+                $add(now()->subDays($days)->setTime(9, 5 + $u->id % 40), 'auth.login', $u, $u);
+            }
+        });
+        $officer = User::where('phone', '01700000003')->first();
+        $add(now()->subDays(2)->setTime(23, 41), 'auth.login_failed', null, null, [], ['label' => $officer->phone, 'district' => $officer->district]);
+
+        usort($rows, fn ($a, $b) => $a[0] <=> $b[0]);
+        foreach ($rows as [$at, $action, $subject, $changes, $context]) {
+            app(Audit::class)->record($action, $subject, $changes, $context);
         }
     }
 

@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // There is no server-rendered login route; API guests get a JSON 401 below.
         $middleware->redirectGuestsTo('/login');
+        // The web container proxies /api. Only private-network proxies are believed, so audit logs get the real client IP and the public can't forge it.
+        $middleware->trustProxies(at: ['127.0.0.1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BuyPost extends Model
 {
+    use Audited;
+
     protected $fillable = ['buyer_id', 'crop', 'quantity_kg', 'price_per_kg', 'district', 'needed_by', 'note', 'status'];
 
     protected function casts(): array

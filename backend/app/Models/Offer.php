@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Offer extends Model
 {
+    use Audited;
+
     protected $fillable = ['listing_id', 'buy_post_id', 'buyer_id', 'farmer_id', 'turn_user_id', 'quantity_kg', 'price_per_kg', 'status'];
 
     protected function casts(): array

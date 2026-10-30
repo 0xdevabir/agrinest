@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FieldController;
@@ -47,6 +48,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/fields/{field}/scans', [ScanController::class, 'store'])->middleware('throttle:scans');
     Route::get('/scans/queue', [ScanController::class, 'queue']);
     Route::post('/scans/{scan}/review', [ScanController::class, 'review']);
+    Route::get('/scans/history', [AuditController::class, 'history']);
+    Route::get('/scans/{scan}/trail', [AuditController::class, 'trail']);
+
+    Route::get('/audit', [AuditController::class, 'index']);
+    Route::get('/audit/export', [AuditController::class, 'export']);
+    Route::get('/audit/verify', [AuditController::class, 'verify']);
+    Route::get('/audit/me', [AuditController::class, 'mine']);
+    Route::get('/officers/{officer}/performance', [AuditController::class, 'performance']);
 
     Route::get('/guidance', [GuidanceController::class, 'index']);
     Route::post('/fields/{field}/guidance', [GuidanceController::class, 'store']);

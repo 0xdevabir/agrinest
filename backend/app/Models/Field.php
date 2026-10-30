@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Field extends Model
 {
+    use Audited;
+
+    /** Recomputed by the system, not decisions anyone made. */
+    protected array $auditHidden = ['boundary', 'weather', 'weather_risk', 'weather_synced_at', 'health_status', 'health_score', 'last_scan_at'];
+
     protected $fillable = ['farmer_id', 'created_by', 'name', 'boundary', 'lat', 'lng', 'area_acres', 'district', 'upazila', 'village'];
 
     protected function casts(): array
