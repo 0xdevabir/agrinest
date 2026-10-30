@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useNational } from '@/components/national'
 import { Empty, Skeletons, dateLabel } from '@/components/ui'
 import { useApp } from '@/lib/app'
@@ -25,7 +26,7 @@ export default function OfficersPage() {
             <tbody>
               {data.officers.map((o) => (
                 <tr key={o.id}>
-                  <th scope="row">{o.name}<a className="sub small officer-tel" href={`tel:${o.phone}`}>{num(o.phone)}</a></th>
+                  <th scope="row"><Link href={`/officers/${o.id}`} style={{ color: 'var(--sage)', textDecoration: 'underline' }}>{o.name}</Link><a className="sub small officer-tel" href={`tel:${o.phone}`}>{num(o.phone)}</a></th>
                   <td>{o.behind ? <span className="flag high">⚠️ {t('পিছিয়ে', 'Behind')}</span> : <span className="flag ok">✓ {t('ঠিক আছে', 'On track')}</span>}</td>
                   <td>{o.district ?? '–'}</td>
                   <td>{num(o.pending)}{o.overdue > 0 && <span className="flag high"> {num(o.overdue)} {t('দেরি', 'late')}</span>}</td>

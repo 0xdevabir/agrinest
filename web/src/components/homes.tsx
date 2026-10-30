@@ -82,8 +82,11 @@ export function FarmHome() {
       </div>
 
       <div className="fab">
-        <button className="btn small" onClick={() => setManaging(true)}>🌾 {t('আমার জমি', 'My lands')}</button>
-        <button className="round glass" style={{ alignSelf: 'flex-end' }} aria-label={t('সব জমি দেখুন', 'Show all land')} onClick={() => stage.current?.fitAll()}>🎯</button>
+        <button className="btn lands-btn" onClick={() => setManaging(true)}>
+          <span className="tab-ico" aria-hidden><TabGlyph name="field" /></span>{t('আমার জমি', 'My lands')}
+          {data && <span className="lands-count">{num(fields.length)}</span>}
+        </button>
+        <button className="round glass" aria-label={t('সব জমি দেখুন', 'Show all land')} onClick={() => stage.current?.fitAll()}>🎯</button>
       </div>
 
       {managing && (

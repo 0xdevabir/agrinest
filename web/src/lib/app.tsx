@@ -22,6 +22,9 @@ type Ctx = {
 }
 
 const AppContext = createContext<Ctx | null>(null)
+
+/** Last answer per endpoint, so returning to a page shows it at once while it refreshes. */
+const cache = new Map<string, unknown>()
 const BN_DIGITS = '০১২৩৪৫৬৭৮৯'
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -61,10 +64,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     user,
     ready,
-    signIn: (token, u) => { setToken(token); setUser(u) },
+    signIn: (token, u) => { cache.clear(); setToken(token); setUser(u) },
     signOut: async () => {
       await api('/auth/logout', { method: 'POST' }).catch(() => undefined)
       setToken(null)
+      cache.clear()
       setUser(null)
     },
     refreshUser,
@@ -91,17 +95,21 @@ export function useApp() {
 
 /** Loads a GET endpoint; `reload` refetches without blanking what is on screen. */
 export function useData<T>(path: string | null) {
-  const [data, setData] = useState<T | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<{ path: string | null; data: T | null; error: string | null } | null>(null)
+  const wanted = useRef(path)
+  wanted.current = path
   const reload = useCallback(async () => {
     if (!path) return
     try {
-      setData(await api<T>(path))
-      setError(null)
+      const data = await api<T>(path)
+      cache.set(path, data)
+      // A slow answer for a page already left must not replace the current one.
+      if (wanted.current === path) setResult({ path, data, error: null })
     } catch (e) {
-      setError((e as Error).message)
+      if (wanted.current === path) setResult({ path, data: (cache.get(path) as T) ?? null, error: (e as Error).message })
     }
   }, [path])
   useEffect(() => { reload() }, [reload])
-  return { data, error, reload }
+  const fresh = result?.path === path ? result : null
+  return { data: fresh ? fresh.data : path ? (cache.get(path) as T) ?? null : null, error: fresh?.error ?? null, reload }
 }

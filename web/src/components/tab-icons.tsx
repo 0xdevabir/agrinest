@@ -11,6 +11,7 @@ export type TabIcon =
   | 'review'
   | 'chart'
   | 'badge'
+  | 'shield'
 
 export function TabGlyph({ name }: { name: TabIcon }) {
   return (
@@ -80,6 +81,12 @@ const paths: Record<TabIcon, ReactNode> = {
       <path d="M5.4 19.4V14.1a.75.75 0 0 1 .75-.75h1.6a.75.75 0 0 1 .75.75V19.4z" />
       <path d="M10.25 19.4V8.35a.75.75 0 0 1 .75-.75h1.6a.75.75 0 0 1 .75.75V19.4z" />
       <path d="M15.1 19.4v-7.7a.75.75 0 0 1 .75-.75h1.6a.75.75 0 0 1 .75.75v7.7z" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 3.5 5.25 6v5.4c0 4.3 2.8 7.5 6.75 9.1 3.95-1.6 6.75-4.8 6.75-9.1V6L12 3.5z" />
+      <path d="M9.1 12.1 11.15 14.1 15.1 10" />
     </>
   ),
   badge: (

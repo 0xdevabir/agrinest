@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { TabGlyph, type TabIcon } from '@/components/tab-icons'
 import { useApp, type Role } from '@/lib/app'
 import { HEALTH, type Health } from '@/lib/types'
@@ -68,6 +68,7 @@ const TABS: Record<Role, { href: string; icon: TabIcon; bn: string; en: string }
   admin: [
     { href: '/', icon: 'chart', bn: 'সারা দেশ', en: 'Nationwide' },
     { href: '/officers', icon: 'badge', bn: 'কর্মকর্তা', en: 'Officers' },
+    { href: '/audit', icon: 'shield', bn: 'অডিট', en: 'Audit' },
     { href: '/profile', icon: 'person', bn: 'প্রোফাইল', en: 'Profile' },
   ],
   buyer: [
@@ -79,11 +80,25 @@ const TABS: Record<Role, { href: string; icon: TabIcon; bn: string; en: string }
 export function TabBar() {
   const { user, t } = useApp()
   const path = usePathname()
+  // The tab answers the tap straight away; the page follows when it has loaded.
+  const [tapped, setTapped] = useState<string | null>(null)
+  useEffect(() => setTapped(null), [path])
   if (!user) return null
+  const tabs = TABS[user.role]
+  const current = tabs.find((tab) => (tab.href === '/' ? path === '/' : path === tab.href || path.startsWith(`${tab.href}/`)))?.href
+  const active = tapped ?? current
+  const index = tabs.findIndex((tab) => tab.href === active)
   return (
-    <nav className="tabbar glass" aria-label="Main">
-      {TABS[user.role].map((tab) => (
-        <Link key={tab.href} href={tab.href} className={path === tab.href ? 'on' : ''}>
+    <nav className={`tabbar glass${index < 0 ? ' none' : ''}`} aria-label="Main" style={{ '--n': tabs.length, '--i': Math.max(index, 0) } as CSSProperties}>
+      <div className="side-brand"><span aria-hidden>🌾</span><b>AgriNest</b></div>
+      {tabs.map((tab) => (
+        <Link
+          key={tab.href}
+          href={tab.href}
+          className={tab.href === active ? 'on' : ''}
+          aria-current={tab.href === current ? 'page' : undefined}
+          onClick={(e) => { if (tab.href !== current && !e.metaKey && !e.ctrlKey && !e.shiftKey) setTapped(tab.href) }}
+        >
           <span className="tab-ico"><TabGlyph name={tab.icon} /></span>{t(tab.bn, tab.en)}
         </Link>
       ))}

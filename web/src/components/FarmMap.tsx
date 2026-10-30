@@ -48,7 +48,7 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
     const wide = window.innerWidth >= 900
     // On a desk, keep land clear of the officer's list as well as the side sheet.
     const rail = wide && document.querySelector('.land-rail')
-    return { top: 110, bottom: wide ? 110 : 210, left: rail ? 420 : 50, right: wide ? 460 : 50 }
+    return { top: 110, bottom: wide ? 60 : 210, left: rail ? 420 : 50, right: wide ? 460 : 50 }
   }
 
   useImperativeHandle(ref, () => ({

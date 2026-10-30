@@ -31,13 +31,14 @@ function useMoney() {
   }
 }
 
-function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
+export function Tile({ label, value, note }: { label: string; value: string; note?: string }) {
   return <div className="tile"><span className="sub small">{label}</span><b>{value}</b>{note && <span className="sub small">{note}</span>}</div>
 }
 
-function Trend({ weeks }: { weeks: Week[] }) {
+export function Trend({ weeks, format }: { weeks: { start: string; value: number }[]; format?: (v: number) => string }) {
   const { t, lang } = useApp()
-  const money = useMoney()
+  const taka = useMoney()
+  const money = format ?? taka
   const [active, setActive] = useState(weeks.length - 1)
   const peak = Math.max(...weeks.map((w) => w.value), 1)
   const shown = weeks[active]
@@ -56,7 +57,7 @@ function Trend({ weeks }: { weeks: Week[] }) {
   )
 }
 
-function HealthBar({ health }: { health: Record<Health, number> }) {
+export function HealthBar({ health }: { health: Record<Health, number> }) {
   const { t, num } = useApp()
   const order: Health[] = ['healthy', 'watch', 'treat', 'urgent', 'unknown']
   const total = order.reduce((sum, h) => sum + health[h], 0)
