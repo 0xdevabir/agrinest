@@ -58,22 +58,13 @@ class FieldController extends Controller
             abort_unless($farmer, 403, 'This farmer is not assigned to you.');
         }
 
-        $polygon = Geo::polygon($data['points']);
-        abort_unless($polygon, 422, 'Boundary must be at least 3 points inside Bangladesh.');
-        $ring = array_slice($polygon['coordinates'][0], 0, -1);
-        $acres = Geo::acres($ring);
-        abort_if($acres < 0.005 || $acres > 2000, 422, 'That land size does not look right. Please redraw it.');
-        [$lat, $lng] = Geo::center($ring);
+        $boundary = $this->boundary($data['points']);
 
-        $place = $atlas->locate($lat, $lng);
-        $field = Field::create([
+        $place = $atlas->locate($boundary['lat'], $boundary['lng']);
+        $field = Field::create($boundary + [
             'farmer_id' => $farmer->id,
             'created_by' => $user->id,
             'name' => $data['name'],
-            'boundary' => $polygon,
-            'lat' => $lat,
-            'lng' => $lng,
-            'area_acres' => $acres,
             // The farmer's profile district is the canonical one officers are assigned by.
             'district' => $farmer->district ?? $place['district'],
             'upazila' => $farmer->upazila ?? $place['upazila'],
@@ -85,10 +76,21 @@ class FieldController extends Controller
         return response()->json(['field' => $this->present->field($field->load('activeCycle', 'farmer'))], 201);
     }
 
-    public function update(Request $request, Field $field): JsonResponse
+    public function update(Request $request, Field $field, WeatherSync $weather): JsonResponse
     {
         abort_unless($field->isManagedBy($request->user()), 403);
-        $field->update($request->validate(['name' => 'required|string|max:80']));
+        $data = $request->validate([
+            'name' => 'sometimes|required|string|max:80',
+            'points' => 'sometimes|required|array|min:3|max:200',
+        ]);
+
+        if (isset($data['points'])) {
+            $field->update($this->boundary($data['points']));
+            $weather->sync($field);
+        }
+        if (isset($data['name'])) {
+            $field->update(['name' => $data['name']]);
+        }
 
         return response()->json(['field' => $this->present->field($field->load('activeCycle', 'farmer'))]);
     }
@@ -106,21 +108,49 @@ class FieldController extends Controller
         abort_unless($field->isManagedBy($request->user()), 403);
         abort_if($field->activeCycle()->exists(), 409, 'This land already has a growing crop. Harvest it first.');
 
-        $data = $request->validate([
-            'crop' => ['required', Rule::in(array_keys(config('agri.crops')))],
-            'variety' => 'nullable|string|max:80',
-            'sown_on' => 'required|date|before_or_equal:today|after:-1 year',
-        ]);
+        $data = $request->validate($this->cropRules());
         $sown = Carbon::parse($data['sown_on']);
 
-        $field->cycles()->create($data + [
+        $cycle = $field->cycles()->create($data + [
             'expected_harvest_on' => $sown->copy()->addDays($agronomy->crop($data['crop'])['days']),
         ]);
         // A new crop starts with a clean slate; the last crop's health no longer applies.
         $field->forceFill(['health_status' => 'unknown', 'health_score' => null])->save();
-        $game->award($field->farmer, 'plant_crop', $field->id.'-'.$sown->toDateString());
+        $game->award($field->farmer, 'plant_crop', $cycle->id);
 
         return response()->json(['field' => $this->present->fieldDetail($field->fresh())], 201);
+    }
+
+    public function updateCycle(Request $request, CropCycle $cycle, Agronomy $agronomy): JsonResponse
+    {
+        $field = $cycle->field;
+        abort_unless($field->isManagedBy($request->user()), 403);
+        abort_unless($cycle->status === 'active', 409, 'This crop was already harvested.');
+
+        $data = $request->validate($this->cropRules());
+        $cropChanged = $data['crop'] !== $cycle->crop;
+        $cycle->update($data + [
+            'expected_harvest_on' => Carbon::parse($data['sown_on'])->addDays($agronomy->crop($data['crop'])['days']),
+        ]);
+        if ($cropChanged) {
+            $field->forceFill(['health_status' => 'unknown', 'health_score' => null])->save();
+        }
+
+        return response()->json(['field' => $this->present->fieldDetail($field->fresh())]);
+    }
+
+    /** Clears a crop that was never really grown; finished seasons go through harvest. */
+    public function destroyCycle(Request $request, CropCycle $cycle, Game $game): JsonResponse
+    {
+        $field = $cycle->field;
+        abort_unless($field->isManagedBy($request->user()), 403);
+        abort_unless($cycle->status === 'active', 409, 'This crop was already harvested.');
+
+        $cycle->delete();
+        $field->forceFill(['health_status' => 'unknown', 'health_score' => null])->save();
+        $game->revoke($field->farmer, 'plant_crop', $cycle->id);
+
+        return response()->json(['field' => $this->present->fieldDetail($field->fresh())]);
     }
 
     public function harvest(Request $request, CropCycle $cycle, Game $game): JsonResponse
@@ -135,5 +165,27 @@ class FieldController extends Controller
         $game->award($field->farmer, 'harvest', $cycle->id);
 
         return response()->json(['field' => $this->present->fieldDetail($field->fresh())]);
+    }
+
+    private function cropRules(): array
+    {
+        return [
+            'crop' => ['required', Rule::in(array_keys(config('agri.crops')))],
+            'variety' => 'nullable|string|max:80',
+            'sown_on' => 'required|date|before_or_equal:today|after:-1 year',
+        ];
+    }
+
+    /** Validates drawn points and returns the field columns derived from them. */
+    private function boundary(array $points): array
+    {
+        $polygon = Geo::polygon($points);
+        abort_unless($polygon, 422, 'Boundary must be at least 3 points inside Bangladesh.');
+        $ring = array_slice($polygon['coordinates'][0], 0, -1);
+        $acres = Geo::acres($ring);
+        abort_if($acres < 0.005 || $acres > 2000, 422, 'That land size does not look right. Please redraw it.');
+        [$lat, $lng] = Geo::center($ring);
+
+        return ['boundary' => $polygon, 'lat' => $lat, 'lng' => $lng, 'area_acres' => $acres];
     }
 }

@@ -26,6 +26,14 @@ class Game
         }
     }
 
+    /** Takes back an award when its action is undone, so undo and redo cannot farm points. */
+    public function revoke(User $user, string $reason, string|int $ref): void
+    {
+        if (XpEvent::where(['user_id' => $user->id, 'reason' => $reason, 'ref' => (string) $ref])->delete()) {
+            $user->decrement('xp', self::POINTS[$reason]);
+        }
+    }
+
     public function level(int $xp): array
     {
         $level = (int) floor(sqrt($xp / 50)) + 1;

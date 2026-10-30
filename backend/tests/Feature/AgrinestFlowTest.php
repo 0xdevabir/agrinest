@@ -64,6 +64,53 @@ class AgrinestFlowTest extends TestCase
         $this->assertSame(50, $field->farmer->fresh()->xp);
     }
 
+    public function test_farmer_can_rename_and_redraw_land(): void
+    {
+        $field = $this->farmerField($this->user('farmer'));
+        $smaller = [[90.419, 24.749], [90.42, 24.749], [90.42, 24.748], [90.419, 24.748]];
+
+        $this->patchJson("/api/fields/{$field->id}", ['name' => 'Pond side'])->assertOk()->assertJsonPath('field.name', 'Pond side');
+        $this->assertEqualsWithDelta(23, $field->fresh()->area_acres, 3);
+
+        $this->patchJson("/api/fields/{$field->id}", ['points' => $smaller])->assertOk()->assertJsonPath('field.name', 'Pond side');
+        $this->assertLessThan(10, $field->fresh()->area_acres);
+
+        $this->patchJson("/api/fields/{$field->id}", ['points' => [[10, 10], [11, 10], [11, 11]]])->assertUnprocessable();
+
+        Sanctum::actingAs($this->user('farmer'));
+        $this->patchJson("/api/fields/{$field->id}", ['name' => 'Mine now'])->assertForbidden();
+    }
+
+    public function test_farmer_can_correct_or_remove_a_growing_crop(): void
+    {
+        $farmer = $this->user('farmer');
+        $field = $this->farmerField($farmer);
+        $sown = today()->subDays(10);
+        $cycleId = $this->postJson("/api/fields/{$field->id}/plant", ['crop' => 'rice', 'sown_on' => $sown->toDateString()])->assertCreated()->json('field.cycle.id');
+        $this->assertSame(80, $farmer->fresh()->xp);
+        $field->forceFill(['health_status' => 'treat'])->save();
+
+        // Fixing only the variety keeps what the scans said about this crop.
+        $this->patchJson("/api/cycles/$cycleId", ['crop' => 'rice', 'variety' => 'BRRI dhan28', 'sown_on' => $sown->toDateString()])
+            ->assertOk()->assertJsonPath('field.cycle.variety', 'BRRI dhan28')->assertJsonPath('field.health_status', 'treat');
+
+        $days = config('agri.crops.wheat.days');
+        $this->patchJson("/api/cycles/$cycleId", ['crop' => 'wheat', 'variety' => null, 'sown_on' => $sown->toDateString()])
+            ->assertOk()->assertJsonPath('field.cycle.crop', 'wheat')->assertJsonPath('field.health_status', 'unknown')
+            ->assertJsonPath('field.cycle.expected_harvest_on', $sown->copy()->addDays($days)->toDateString());
+
+        $this->deleteJson("/api/cycles/$cycleId")->assertOk()->assertJsonPath('field.cycle', null);
+        $this->assertSame(50, $farmer->fresh()->xp);
+
+        // Undoing and planting again cannot earn more than the one award.
+        $next = $this->postJson("/api/fields/{$field->id}/plant", ['crop' => 'rice', 'sown_on' => today()->toDateString()])->json('field.cycle.id');
+        $this->assertSame(80, $farmer->fresh()->xp);
+
+        $this->postJson("/api/cycles/$next/harvest", ['actual_yield_kg' => 100])->assertOk();
+        $this->deleteJson("/api/cycles/$next")->assertConflict();
+        $this->patchJson("/api/cycles/$next", ['crop' => 'rice', 'sown_on' => today()->toDateString()])->assertConflict();
+    }
+
     public function test_boundary_outside_bangladesh_is_rejected(): void
     {
         Sanctum::actingAs($this->user('farmer'));

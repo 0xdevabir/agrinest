@@ -26,22 +26,39 @@ function useSubmit() {
 
 const Err = ({ text }: { text: string }) => (text ? <div className="notice high" role="alert">{text}</div> : null)
 
+/** Plants a crop, or corrects the one already growing when the land has one. */
 export function PlantSheet({ field, onClose, onDone }: ActionProps) {
   const { t, pick, num, toast } = useApp()
   const { data } = useData<{ crops: Crop[] }>('/catalog')
-  const [crop, setCrop] = useState('')
-  const [variety, setVariety] = useState('')
-  const [sown, setSown] = useState(today())
+  const growing = field.cycle
+  const [crop, setCrop] = useState(growing?.crop ?? '')
+  const [variety, setVariety] = useState(growing?.variety ?? '')
+  const [sown, setSown] = useState(growing?.sown_on ?? today())
   const { busy, error, run } = useSubmit()
 
   const submit = () => run(async () => {
-    await api(`/fields/${field.id}/plant`, { body: { crop, variety: variety || null, sown_on: sown } })
-    toast(`🌱 ${t('ফসল লাগানো হয়েছে!', 'Crop planted!')} +${num(30)} XP`)
+    const body = { crop, variety: variety || null, sown_on: sown }
+    if (growing) {
+      await api(`/cycles/${growing.id}`, { method: 'PATCH', body })
+      toast(`✅ ${t('ফসলের তথ্য হালনাগাদ হয়েছে', 'Crop updated')}`)
+    } else {
+      await api(`/fields/${field.id}/plant`, { body })
+      toast(`🌱 ${t('ফসল লাগানো হয়েছে!', 'Crop planted!')} +${num(30)} XP`)
+    }
     await onDone()
   })
 
+  const remove = () => {
+    if (!growing || !window.confirm(t('এই ফসল সরিয়ে ফেলবেন? ফসল তুলে থাকলে "ফসল তুলুন" ব্যবহার করুন।', 'Remove this crop? If you already harvested it, use Harvest instead.'))) return
+    run(async () => {
+      await api(`/cycles/${growing.id}`, { method: 'DELETE' })
+      toast(t('ফসল সরানো হয়েছে', 'Crop removed'))
+      await onDone()
+    })
+  }
+
   return (
-    <Sheet title={t('কী লাগালেন?', 'What did you plant?')} subtitle={field.name} onClose={onClose}>
+    <Sheet title={growing ? t('ফসল সম্পাদনা', 'Edit crop') : t('কী লাগালেন?', 'What did you plant?')} subtitle={field.name} onClose={onClose}>
       <div className="grid-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }}>
         {(data?.crops ?? []).map((c) => (
           <button key={c.id} aria-pressed={crop === c.id} className="card" style={{ border: `2px solid ${crop === c.id ? 'var(--sage)' : 'transparent'}`, cursor: 'pointer', textAlign: 'center', padding: 10 }} onClick={() => setCrop(c.id)}>
@@ -55,6 +72,29 @@ export function PlantSheet({ field, onClose, onDone }: ActionProps) {
       <div><label className="lbl" htmlFor="variety">{t('জাত (জানা থাকলে)', 'Variety (if known)')}</label><input id="variety" className="input" maxLength={80} placeholder={t('যেমন: ব্রি ধান২৮', 'e.g. BRRI dhan28')} value={variety} onChange={(e) => setVariety(e.target.value)} /></div>
       <Err text={error} />
       <button className="btn block" disabled={busy || !crop || !sown} onClick={submit}>{busy ? '…' : t('সংরক্ষণ করুন', 'Save')}</button>
+      {growing && <button className="btn danger block" disabled={busy} onClick={remove}>{t('ফসল সরান', 'Remove crop')}</button>}
+    </Sheet>
+  )
+}
+
+export function EditLandSheet({ field, onClose, onDone, onRedraw, onRemove }: ActionProps & { onRedraw: () => void; onRemove: () => void }) {
+  const { t, num, toast } = useApp()
+  const [name, setName] = useState(field.name)
+  const { busy, error, run } = useSubmit()
+
+  const submit = () => run(async () => {
+    await api(`/fields/${field.id}`, { method: 'PATCH', body: { name: name.trim() } })
+    toast(`✅ ${t('জমির নাম হালনাগাদ হয়েছে', 'Land name updated')}`)
+    await onDone()
+  })
+
+  return (
+    <Sheet title={t('জমি সম্পাদনা', 'Edit land')} subtitle={`${num(field.area_acres)} ${t('একর', 'acres')}`} onClose={onClose}>
+      <div><label className="lbl" htmlFor="land-name">{t('জমির নাম', 'Land name')}</label><input id="land-name" className="input" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} /></div>
+      <Err text={error} />
+      <button className="btn block" disabled={busy || !name.trim() || name.trim() === field.name} onClick={submit}>{busy ? '…' : t('নাম সংরক্ষণ করুন', 'Save name')}</button>
+      <button className="btn soft block" disabled={busy} onClick={onRedraw}>📐 {t('জমির সীমানা আবার আঁকুন', 'Redraw boundary')}</button>
+      <button className="btn danger block" disabled={busy} onClick={onRemove}>{t('জমি মুছুন', 'Delete land')}</button>
     </Sheet>
   )
 }

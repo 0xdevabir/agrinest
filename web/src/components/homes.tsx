@@ -1,10 +1,11 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
+import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
 import { HEALTH, type Field, type Health, type Localized } from '@/lib/types'
 import { MapStage, type StageHandle } from './MapStage'
-import { kg } from './ui'
+import { Sheet, kg } from './ui'
 
 type Level = { level: number; xp: number; floor: number; next: number; pct: number }
 type Quest = Localized & { id: string; type: 'add_land' | 'guidance' | 'plant' | 'harvest' | 'scan'; points: number; field_id: number | null; urgent?: boolean }
@@ -18,11 +19,46 @@ type FarmData = {
 
 const QUEST_ICON: Record<Quest['type'], string> = { add_land: '📍', guidance: '🧑‍🔬', plant: '🌱', harvest: '🌾', scan: '📸' }
 
+function LandsSheet({ fields, onClose, onOpen, onAdd, onChange }: { fields: Field[]; onClose: () => void; onOpen: (id: number) => void; onAdd: () => void; onChange: () => void | Promise<void> }) {
+  const { t, pick, num, toast } = useApp()
+
+  const remove = async (f: Field) => {
+    if (!window.confirm(t(`"${f.name}" মুছে ফেলবেন? সব তথ্য মুছে যাবে।`, `Delete "${f.name}" and all its records?`))) return
+    try {
+      await api(`/fields/${f.id}`, { method: 'DELETE' })
+      await onChange()
+    } catch (e) { toast((e as Error).message) }
+  }
+
+  return (
+    <Sheet overMap title={t('আমার জমি', 'My lands')} subtitle={`${num(fields.length)} ${t('টি জমি', 'lands')}`} onClose={onClose}>
+      <button className="btn block" onClick={onAdd}>➕ {t('নতুন জমি যোগ করুন', 'Add new land')}</button>
+      {fields.length > 0 && (
+        <div className="group">
+          {fields.map((f) => (
+            <div className="cell" key={f.id} style={{ padding: 0 }}>
+              <button className="cell grow" style={{ minWidth: 0 }} onClick={() => onOpen(f.id)}>
+                <span className="icon-tile" aria-hidden>{f.cycle?.emoji ?? '🟫'}</span>
+                <span className="grow" style={{ minWidth: 0 }}>
+                  <b className="truncate" style={{ display: 'block' }}>{f.name}</b>
+                  <span className="sub small truncate" style={{ display: 'block' }}>{f.cycle ? pick(f.cycle) : t('ফসল নেই', 'No crop')} · {num(f.area_acres)} {t('একর', 'ac')}</span>
+                </span>
+              </button>
+              <button className="close" style={{ marginRight: 12, flex: 'none' }} aria-label={`${t('মুছুন', 'Delete')}: ${f.name}`} onClick={() => remove(f)}>🗑️</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Sheet>
+  )
+}
+
 export function FarmHome() {
   const { t, pick, num, user, refreshUser } = useApp()
   const { data, reload } = useData<FarmData>('/dashboard/farm')
   const stage = useRef<StageHandle>(null)
   const [drawing, setDrawing] = useState(false)
+  const [managing, setManaging] = useState(false)
 
   const changed = async () => { await reload(); refreshUser().catch(() => undefined) }
   const start = (q: Quest) => {
@@ -46,9 +82,19 @@ export function FarmHome() {
       </div>
 
       <div className="fab">
-        <button className="round glass" aria-label={t('নতুন জমি যোগ করুন', 'Add new land')} onClick={() => setDrawing(true)}>➕</button>
-        <button className="round glass" aria-label={t('সব জমি দেখুন', 'Show all land')} onClick={() => stage.current?.fitAll()}>🎯</button>
+        <button className="btn small" onClick={() => setManaging(true)}>🌾 {t('আমার জমি', 'My lands')}</button>
+        <button className="round glass" style={{ alignSelf: 'flex-end' }} aria-label={t('সব জমি দেখুন', 'Show all land')} onClick={() => stage.current?.fitAll()}>🎯</button>
       </div>
+
+      {managing && (
+        <LandsSheet
+          fields={fields}
+          onClose={() => setManaging(false)}
+          onOpen={(id) => { setManaging(false); stage.current?.open(id) }}
+          onAdd={() => { setManaging(false); setDrawing(true) }}
+          onChange={changed}
+        />
+      )}
 
       <div className="hud-bottom">
         {alert && (

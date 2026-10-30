@@ -33,10 +33,12 @@ function roughAcres(pts: number[][]) {
   return Math.abs(sum) / 2 / 4046.86
 }
 
-export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ fields, onChange, children, showFarmer, drawing, onDrawingChange, drawFarmerId }, ref) {
+export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ fields, onChange, children, showFarmer, drawing: adding, onDrawingChange, drawFarmerId }, ref) {
   const { t, num, toast } = useApp()
   const map = useRef<MapHandle>(null)
   const [selected, setSelected] = useState<{ id: number; intent?: FieldIntent } | null>(null)
+  const [redrawId, setRedrawId] = useState<number | null>(null)
+  const drawing = !!adding || redrawId !== null
   const [points, setPoints] = useState<number[][]>([])
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')
@@ -61,7 +63,8 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
   // Drawing happens against the satellite photo, so zoom close first.
   useEffect(() => {
     if (!drawing) return
-    if (fields.length) map.current?.flyTo(fields[0].lng, fields[0].lat, 16.5)
+    const near = (redrawId !== null && byId(redrawId)) || fields[0]
+    if (near) map.current?.flyTo(near.lng, near.lat, 16.5)
     else locate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawing])
@@ -96,6 +99,25 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
       await onChange()
       toast(`🎉 ${t('জমি যোগ হয়েছে!', 'Land added!')} +${num(50)} XP`)
       setSelected({ id: data.field.id, intent: 'plant' })
+    } catch (e) {
+      toast((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const endRedraw = () => {
+    setSelected({ id: redrawId! })
+    setRedrawId(null)
+  }
+
+  const saveRedraw = async () => {
+    setBusy(true)
+    try {
+      await api(`/fields/${redrawId}`, { method: 'PATCH', body: { points } })
+      await onChange()
+      toast(`✅ ${t('জমির সীমানা হালনাগাদ হয়েছে', 'Land boundary updated')}`)
+      endRedraw()
     } catch (e) {
       toast((e as Error).message)
     } finally {
@@ -138,9 +160,11 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
           </div>
           <div className="hud-bottom" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)', padding: '0 12px' }}>
             <div className="glass row" style={{ padding: 8, borderRadius: 20, maxWidth: 480, margin: '0 auto' }}>
-              <button className="btn soft small grow" style={{ minHeight: 46 }} onClick={() => onDrawingChange?.(false)}>{t('বাতিল', 'Cancel')}</button>
+              <button className="btn soft small grow" style={{ minHeight: 46 }} onClick={() => (redrawId !== null ? endRedraw() : onDrawingChange?.(false))}>{t('বাতিল', 'Cancel')}</button>
               <button className="btn soft small grow" style={{ minHeight: 46 }} disabled={!points.length} onClick={() => setPoints(points.slice(0, -1))}>↩︎ {t('মুছুন', 'Undo')}</button>
-              <button className="btn small grow" style={{ minHeight: 46 }} disabled={points.length < 3} onClick={() => setNaming(true)}>{t('পরের ধাপ', 'Next')}</button>
+              {redrawId !== null
+                ? <button className="btn small grow" style={{ minHeight: 46 }} disabled={busy || points.length < 3} onClick={saveRedraw}>{busy ? '…' : t('সংরক্ষণ', 'Save')}</button>
+                : <button className="btn small grow" style={{ minHeight: 46 }} disabled={points.length < 3} onClick={() => setNaming(true)}>{t('পরের ধাপ', 'Next')}</button>}
             </div>
           </div>
         </>
@@ -161,6 +185,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
           preview={byId(selected.id)}
           onClose={() => setSelected(null)}
           onChange={onChange}
+          onRedraw={() => { setRedrawId(selected.id); setSelected(null) }}
         />
       )}
     </>

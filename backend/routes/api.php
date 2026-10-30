@@ -38,6 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/fields/{field}', [FieldController::class, 'update']);
     Route::delete('/fields/{field}', [FieldController::class, 'destroy']);
     Route::post('/fields/{field}/plant', [FieldController::class, 'plant']);
+    Route::patch('/cycles/{cycle}', [FieldController::class, 'updateCycle']);
+    Route::delete('/cycles/{cycle}', [FieldController::class, 'destroyCycle']);
     Route::post('/cycles/{cycle}/harvest', [FieldController::class, 'harvest']);
 
     Route::post('/fields/{field}/scans', [ScanController::class, 'store'])->middleware('throttle:scans');

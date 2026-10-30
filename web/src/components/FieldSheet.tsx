@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
 import type { Field, FieldDetail, Scan } from '@/lib/types'
-import { GuidanceSheet, HarvestSheet, PlantSheet, ReviewSheet, ScanCard, ScanSheet } from './actions'
+import { EditLandSheet, GuidanceSheet, HarvestSheet, PlantSheet, ReviewSheet, ScanCard, ScanSheet } from './actions'
 import { HealthPill, Sheet, dateLabel, kg } from './ui'
 
 export type FieldIntent = 'plant' | 'scan' | 'harvest'
-type Action = FieldIntent | 'guidance' | null
+type Action = FieldIntent | 'guidance' | 'edit-crop' | 'edit-land' | null
 
 const ADVICE_ICON: Record<string, string> = { water: '💧', fertilizer: '🧪', scan: '📸', harvest: '🌾' }
 
-export function FieldSheet({ id, intent, preview, onClose, onChange }: { id: number; intent?: FieldIntent; preview?: Field; onClose: () => void; onChange: () => void | Promise<void> }) {
+export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }: { id: number; intent?: FieldIntent; preview?: Field; onClose: () => void; onChange: () => void | Promise<void>; onRedraw: () => void }) {
   const { t, pick, num, lang, user, toast, refreshUser } = useApp()
   const { data, error, reload } = useData<{ field: FieldDetail }>(`/fields/${id}`)
   const f = data?.field
@@ -98,6 +98,12 @@ export function FieldSheet({ id, intent, preview, onClose, onChange }: { id: num
                   {!f.cycle && <button className="btn grow" onClick={() => setAction('plant')}>🌱 {t('ফসল লাগান', 'Plant a crop')}</button>}
                   {f.cycle && <button className="btn grow" onClick={() => setAction('scan')}>📸 {t('ছবি পাঠান', 'Send photos')}</button>}
                   {f.cycle && <button className={`btn grow${f.cycle.progress.ready ? '' : ' soft'}`} onClick={() => setAction('harvest')}>🌾 {t('ফসল তুলুন', 'Harvest')}</button>}
+                </div>
+              )}
+              {canManage && (
+                <div className="row">
+                  {f.cycle && <button className="btn soft small grow" onClick={() => setAction('edit-crop')}>✏️ {t('ফসল সম্পাদনা', 'Edit crop')}</button>}
+                  <button className="btn soft small grow" onClick={() => setAction('edit-land')}>⚙️ {t('জমি সম্পাদনা', 'Edit land')}</button>
                 </div>
               )}
               {isOfficer && <button className="btn block" onClick={() => setAction('guidance')}>✍️ {t('কৃষককে পরামর্শ দিন', 'Send guidance')}</button>}
@@ -207,12 +213,12 @@ export function FieldSheet({ id, intent, preview, onClose, onChange }: { id: num
               </>
             )}
 
-            {canManage && <button className="btn danger block" onClick={removeLand}>{t('জমি মুছুন', 'Delete land')}</button>}
           </>
         )}
       </Sheet>
 
-      {f && action === 'plant' && <PlantSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
+      {f && (action === 'plant' || action === 'edit-crop') && <PlantSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
+      {f && action === 'edit-land' && <EditLandSheet field={f} onClose={() => setAction(null)} onDone={updated} onRedraw={onRedraw} onRemove={removeLand} />}
       {f && action === 'scan' && <ScanSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
       {f && action === 'harvest' && <HarvestSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
       {f && action === 'guidance' && <GuidanceSheet field={f} onClose={() => setAction(null)} onDone={updated} />}
