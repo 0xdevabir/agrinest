@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { FarmerForm } from '@/components/actions'
+import { Mark } from '@/components/picture'
 import { Empty, FlowDone, Sheet, Skeletons, StepBar } from '@/components/ui'
 import { useApp, useData } from '@/lib/app'
 
@@ -25,12 +26,12 @@ export default function FarmersPage() {
       <p className="sub" style={{ marginBottom: 16 }}>{data ? `${num(data.stats.farmers)} ${t('জন কৃষক', 'farmers')} · ${num(data.stats.lands)} ${t('টি জমি', 'lands')}` : ' '}</p>
       {error && <div className="notice high" role="alert">{error}</div>}
       {!data && !error && <Skeletons />}
-      {data && !data.farmers.length && <Empty icon="🧑‍🌾">{t('প্রথম কৃষক যোগ করুন', 'Add your first farmer')}</Empty>}
+      {data && !data.farmers.length && <Empty icon={<Mark name="farmer" frame="empty" />}>{t('প্রথম কৃষক যোগ করুন', 'Add your first farmer')}</Empty>}
       {data && data.farmers.length > 0 && (
         <div className="group">
           {data.farmers.map((f) => (
             <div className="cell" key={f.id}>
-              <span className="icon-tile" aria-hidden>🧑‍🌾</span>
+              <span className="icon-tile" aria-hidden><Mark name="farmer" /></span>
               <span className="grow"><b>{f.name}</b><div className="sub small">{f.village ?? ''} · {f.fields_count ? `${num(f.fields_count)} ${t('টি জমি', 'lands')}` : t('জমি যোগ হয়নি', 'No land yet')}</div></span>
               <Link className={`btn small${f.fields_count ? ' soft' : ''}`} href={`/?addLandFor=${f.id}`}>➕ {t('জমি', 'Land')}</Link>
               <a className="btn small soft" href={`tel:${f.phone}`} aria-label={`${t('কল', 'Call')} ${f.name}`}>📞</a>
@@ -43,7 +44,7 @@ export default function FarmersPage() {
           {added ? (
             <>
               <StepBar steps={steps} step={2} title={t('এবার জমি যোগ করুন', 'Now add their land')} />
-              <FlowDone icon="🧑‍🌾" title={added.linked ? t(`${added.name} আপনার সাথে যুক্ত হয়েছেন`, `${added.name} is linked to you`) : t(`${added.name} যোগ হয়েছেন`, `${added.name} is added`)} body={t('জমি যোগ করলে ফসল ও ভিজিটের হিসাব শুরু হবে।', 'Adding land starts their crop and visit tracking.')}>
+              <FlowDone icon={<Mark name="farmer" frame="empty" />} title={added.linked ? t(`${added.name} আপনার সাথে যুক্ত হয়েছেন`, `${added.name} is linked to you`) : t(`${added.name} যোগ হয়েছেন`, `${added.name} is added`)} body={t('জমি যোগ করলে ফসল ও ভিজিটের হিসাব শুরু হবে।', 'Adding land starts their crop and visit tracking.')}>
                 <Link className="btn block" href={`/?addLandFor=${added.id}`}>📍 {t('জমি আঁকুন', 'Draw their land')}</Link>
                 <button className="btn soft block" onClick={() => setAdded(null)}>➕ {t('আরেকজন কৃষক যোগ করুন', 'Add another farmer')}</button>
                 <button className="btn soft block" onClick={close}>{t('এখন শেষ', 'Done for now')}</button>

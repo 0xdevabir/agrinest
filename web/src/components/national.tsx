@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { CropPicture } from '@/components/picture'
 import { Skeletons, dateLabel, kg } from '@/components/ui'
 import { useApp, useData } from '@/lib/app'
 import { HEALTH, type Health } from '@/lib/types'
@@ -119,7 +120,7 @@ export function NationalHome() {
           <tbody>
             {data.crops.map((c) => (
               <tr key={c.id}>
-                <th scope="row"><span aria-hidden>{c.emoji}</span> {pick(c)}</th>
+                <th scope="row"><CropPicture crop={c.id} frame="chip" alt="" />{pick(c)}</th>
                 <td>{c.acres ? `${num(Math.round(c.acres))} ${t('একর', 'acres')}` : '–'}</td>
                 <td>{c.expected_kg ? amount(c.expected_kg) : '–'}</td>
                 <td>{c.harvested_kg ? amount(c.harvested_kg) : '–'}</td>

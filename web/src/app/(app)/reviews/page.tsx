@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReviewSheet } from '@/components/actions'
 import { TrailSheet, useDuration, type Performance, type ReviewedScan } from '@/components/audit'
 import { Tile } from '@/components/national'
+import { Mark, cropSrc } from '@/components/picture'
 import { Empty, HealthPill, Segmented, Skeletons, dateLabel } from '@/components/ui'
 import { useApp, useData } from '@/lib/app'
 import { HEALTH, type Health, type Scan } from '@/lib/types'
@@ -79,15 +80,15 @@ function Queue({ overdueDays, onReviewed }: { overdueDays: number; onReviewed: (
 
       {error && <div className="notice high" role="alert" style={{ marginTop: 12 }}>{error}</div>}
       {!data && !error && <div style={{ marginTop: 12 }}><Skeletons /></div>}
-      {data && !data.scans.length && <Empty icon="🎉">{t('সব রিভিউ শেষ!', 'All caught up!')}</Empty>}
-      {data && data.scans.length > 0 && !scans.length && <Empty icon="🔍">{t('এই খোঁজে কোনো স্ক্যান নেই', 'No scans match this search')}</Empty>}
+      {data && !data.scans.length && <Empty icon={<Mark name="done" frame="empty" />}>{t('সব রিভিউ শেষ!', 'All caught up!')}</Empty>}
+      {data && data.scans.length > 0 && !scans.length && <Empty icon={<Mark name="search" frame="empty" />}>{t('এই খোঁজে কোনো স্ক্যান নেই', 'No scans match this search')}</Empty>}
 
       <div className="queue">
         {scans.map((s) => {
           const age = ageHours(s)
           return (
             <article key={s.id} className="queue-row">
-              {s.photos[0] ? <img className="thumb" src={s.photos[0]} alt="" loading="lazy" /> : <span className="thumb" aria-hidden>{s.field?.cycle?.emoji ?? '🌱'}</span>}
+              <img className="thumb" src={s.photos[0] || cropSrc(s.field?.cycle?.crop)} alt="" loading="lazy" />
               <div className="grow" style={{ minWidth: 0 }}>
                 <b className="truncate" style={{ display: 'block' }}>{s.field?.farmer?.name}, {s.field?.name}</b>
                 <div className="sub small truncate">{lang === 'bn' ? s.ai.name_bn : s.ai.name_en} ({num(Math.round(s.ai.confidence * 100))}%){s.field?.village ? `, ${s.field.village}` : ''}</div>
@@ -143,7 +144,7 @@ function History() {
 
       {error && <div className="notice high" role="alert" style={{ marginTop: 12 }}>{error}</div>}
       {!shown && !error && <div style={{ marginTop: 12 }}><Skeletons /></div>}
-      {shown && !shown.scans.length && <Empty icon="📋">{t('এই খোঁজে কোনো রেকর্ড নেই', 'No records match this search')}</Empty>}
+      {shown && !shown.scans.length && <Empty icon={<Mark name="clipboard" frame="empty" />}>{t('এই খোঁজে কোনো রেকর্ড নেই', 'No records match this search')}</Empty>}
 
       {shown && shown.scans.length > 0 && (
         <>
@@ -155,7 +156,7 @@ function History() {
                   <tr key={s.id} className="row-open" onClick={() => setOpen(s.id)}>
                     <th scope="row">
                       <button className="who" style={{ border: 0, background: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', font: 'inherit', color: 'inherit' }} onClick={(e) => { e.stopPropagation(); setOpen(s.id) }} aria-label={t(`${s.field?.farmer?.name}-এর স্ক্যানের রেকর্ড দেখুন`, `Open the record for ${s.field?.farmer?.name}`)}>
-                        {s.photos[0] ? <img className="thumb small" src={s.photos[0]} alt="" loading="lazy" /> : <span className="thumb small" aria-hidden>{s.field?.cycle?.emoji ?? '🌱'}</span>}
+                        <img className="thumb small" src={s.photos[0] || cropSrc(s.field?.cycle?.crop)} alt="" loading="lazy" />
                         <span><b>{s.field?.farmer?.name}</b><span className="sub small">{s.field?.name}</span></span>
                       </button>
                     </th>

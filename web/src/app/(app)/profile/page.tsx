@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ActivityList, ChainCheck, PerformancePanel, useStamp, type AuditEntry, type Performance } from '@/components/audit'
 import { Tile } from '@/components/national'
+import { Mark, type MarkName } from '@/components/picture'
 import { Segmented, Skeletons, kg } from '@/components/ui'
 import { useApp, useData, type Lang } from '@/lib/app'
 import type { Guidance, Localized } from '@/lib/types'
@@ -94,7 +95,7 @@ function FarmerSummary() {
         <div className="badges">
           {data.badges.map((b) => (
             <div key={b.id} style={{ textAlign: 'center', opacity: b.earned ? 1 : .45 }}>
-              <div style={{ fontSize: 32, filter: b.earned ? undefined : 'grayscale(1)' }} aria-hidden>{b.emoji}</div>
+              <Mark name={({ landowner: 'pin', watchful: 'search', listener: 'handshake', harvester: 'harvest', trader: 'coins' } as Record<string, MarkName>)[b.id] ?? 'leaf'} frame="badge" dim={!b.earned} />
               <div className="small" style={{ fontWeight: 600 }}>{pick(b)}</div>
               <div className="sub" style={{ fontSize: 11 }}>{b.earned ? t('অর্জিত', 'Earned') : t('এখনো বাকি', 'Locked')}</div>
             </div>
@@ -108,7 +109,7 @@ function FarmerSummary() {
           <ul className="log">
             {feed.guidance.slice(0, 10).map((g) => (
               <li key={g.id}>
-                <span aria-hidden>{g.done_at ? '✅' : g.priority === 'urgent' ? '🚨' : '🧑‍🔬'}</span>
+                <span aria-hidden>{g.done_at ? <Mark name="done" frame="chip" /> : g.priority === 'urgent' ? <Mark name="alert" frame="chip" /> : <Mark name="officer" frame="chip" />}</span>
                 <span className="grow" style={{ minWidth: 0 }}><b style={{ fontWeight: 600 }}>{g.title}</b><div className="sub small truncate">{g.field_name}, {g.officer}, {stamp(g.created_at)}</div></span>
               </li>
             ))}

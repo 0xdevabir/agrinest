@@ -3,16 +3,17 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 import { FieldBackdrop } from '@/components/FieldBackdrop'
+import { CropPicture, Mark, type MarkName } from '@/components/picture'
 import { Segmented, StepBar } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useApp, type User } from '@/lib/app'
 
-const DEMO = [
-  { phone: '01700000001', icon: '🧑‍🌾', bn: 'কৃষক', en: 'Farmer' },
-  { phone: '01700000002', icon: '🎒', bn: 'এজেন্ট', en: 'Agent' },
-  { phone: '01700000003', icon: '🔬', bn: 'কর্মকর্তা', en: 'Officer' },
-  { phone: '01700000004', icon: '🛒', bn: 'ক্রেতা', en: 'Buyer' },
-  { phone: '01700000007', icon: '🏛️', bn: 'প্রশাসক', en: 'Admin' },
+const DEMO: { phone: string; mark: MarkName; bn: string; en: string }[] = [
+  { phone: '01700000001', mark: 'farmer', bn: 'কৃষক', en: 'Farmer' },
+  { phone: '01700000002', mark: 'agent', bn: 'এজেন্ট', en: 'Agent' },
+  { phone: '01700000003', mark: 'officer', bn: 'কর্মকর্তা', en: 'Officer' },
+  { phone: '01700000004', mark: 'buyer', bn: 'ক্রেতা', en: 'Buyer' },
+  { phone: '01700000007', mark: 'admin', bn: 'প্রশাসক', en: 'Admin' },
 ]
 
 export default function LoginPage() {
@@ -56,7 +57,7 @@ export default function LoginPage() {
       <FieldBackdrop />
       <div className="login-card" style={{ color: '#fff', marginBottom: 'auto', paddingTop: 'calc(env(safe-area-inset-top) + 8vh)' }}>
         <div className="row between">
-          <div style={{ fontSize: 52 }} aria-hidden>🌾</div>
+          <div aria-hidden><CropPicture crop="rice" frame="hero" alt="" /></div>
           <button className="btn small soft" style={{ color: '#fff', background: 'rgba(255,255,255,.18)' }} onClick={() => setLang(lang === 'bn' ? 'en' : 'bn')}>{lang === 'bn' ? 'English' : 'বাংলা'}</button>
         </div>
         <h1 style={{ fontSize: 42, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.1, marginTop: 10 }}>AgriNest</h1>
@@ -114,7 +115,7 @@ export default function LoginPage() {
             <div className="grid-2" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
               {DEMO.map((d) => (
                 <button type="button" key={d.phone} className="btn soft small" style={{ flexDirection: 'column', gap: 0, padding: '8px 2px', minHeight: 62, fontSize: 12 }} disabled={busy} onClick={() => enter('/auth/login', { phone: d.phone, password: 'password' })}>
-                  <span style={{ fontSize: 22 }} aria-hidden>{d.icon}</span>{t(d.bn, d.en)}
+                  <Mark name={d.mark} frame="demo" />{t(d.bn, d.en)}
                 </button>
               ))}
             </div>

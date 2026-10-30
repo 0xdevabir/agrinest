@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { PerformancePanel, type Performance } from '@/components/audit'
+import { Mark } from '@/components/picture'
 import { Empty, Skeletons, dateLabel } from '@/components/ui'
 import { useApp, useData } from '@/lib/app'
 
@@ -12,7 +13,7 @@ export default function OfficerPage() {
   const isAdmin = user?.role === 'admin'
   const { data, error } = useData<Performance>(isAdmin ? `/officers/${id}/performance` : null)
 
-  if (!isAdmin) return <div className="page"><Empty icon="🔒">{t('এই পাতা শুধু জাতীয় প্রশাসকের জন্য', 'This page is for national admins')}</Empty></div>
+  if (!isAdmin) return <div className="page"><Empty icon={<Mark name="lock" frame="empty" />}>{t('এই পাতা শুধু জাতীয় প্রশাসকের জন্য', 'This page is for national admins')}</Empty></div>
 
   const o = data?.officer
   return (

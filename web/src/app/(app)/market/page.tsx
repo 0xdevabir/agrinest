@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { CropPicture, Mark, cropSrc } from '@/components/picture'
 import { Empty, FlowDone, HealthPill, Segmented, Sheet, StepBar, StepNav, dateLabel, kg } from '@/components/ui'
 import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
@@ -10,7 +11,7 @@ type Base = Localized & { id: number; crop: string; emoji: string; quantity_kg: 
 type Listing = Base & { farmer: string; health_status?: Health }
 type BuyPost = Base & { buyer: string; buyer_type?: string; needed_by?: string }
 type Offer = {
-  id: number; source: 'listing' | 'buy_post'; crop_en: string; crop_bn: string; emoji: string
+  id: number; source: 'listing' | 'buy_post'; crop: string; crop_en: string; crop_bn: string; emoji: string
   status: 'pending' | 'accepted' | 'rejected'; quantity_kg: number; price_per_kg: number
   buyer: { name: string; organization?: string }; farmer: { name: string }; my_turn: boolean
   rounds: { mine: boolean; by: string; quantity_kg: number; price_per_kg: number; note?: string; at: string }[]
@@ -19,8 +20,6 @@ type Board = { listings: Listing[]; buy_posts: BuyPost[]; offers: Offer[] }
 type Tab = 'listings' | 'buy_posts' | 'offers'
 type Sort = 'new' | 'low' | 'high'
 type Target = { kind: 'listing' | 'post'; item: Base; title: string }
-
-const IMAGES = new Set(['rice', 'potato', 'tomato', 'brinjal', 'onion'])
 
 /** Deals get their own column on big screens, so the Deals tab only exists below this width. */
 function useWide() {
@@ -82,7 +81,7 @@ export default function MarketPage() {
     ...(wide ? [] : [{ id: 'offers' as Tab, label: `${t('দরদাম', 'Deals')}${waiting ? ` (${num(waiting)})` : ''}` }]),
   ]
 
-  const emptyDeals = <Empty icon="🤝">{isFarmer ? t('কেনার পোস্টে প্রস্তাব দিলে দরদাম এখানে দেখা যাবে', 'Offer to sell on a buy post and your deals appear here') : t('ফসলে দর দিলে দরদাম এখানে দেখা যাবে', 'Bid on a crop and your deals appear here')}</Empty>
+  const emptyDeals = <Empty icon={<Mark name="handshake" frame="empty" />}>{isFarmer ? t('কেনার পোস্টে প্রস্তাব দিলে দরদাম এখানে দেখা যাবে', 'Offer to sell on a buy post and your deals appear here') : t('ফসলে দর দিলে দরদাম এখানে দেখা যাবে', 'Bid on a crop and your deals appear here')}</Empty>
 
   return (
     <div className="market">
@@ -99,13 +98,13 @@ export default function MarketPage() {
           <h2>{t('ফসল ও সাধারণ দর', 'Crops and usual prices')}</h2>
           <div className="group">
             <button className="cell" aria-pressed={!activeCrop} onClick={() => setCrop(null)}>
-              <span className="icon-tile" aria-hidden>🧺</span>
+              <span className="icon-tile" aria-hidden><Mark name="basket" /></span>
               <b className="grow">{t('সব ফসল', 'All crops')}</b>
               <span className="sub">{num(items.length)}</span>
             </button>
             {crops.map((c) => (
               <button className="cell" key={c.crop} aria-pressed={activeCrop === c.crop} onClick={() => setCrop(c.crop)}>
-                <span className="icon-tile" aria-hidden>{c.emoji}</span>
+                <span className="icon-tile" aria-hidden><CropPicture crop={c.crop} /></span>
                 <span className="grow"><b>{pick(c)}</b><div className="sub small">৳{num(c.reference_price)}/{t('কেজি', 'kg')}</div></span>
                 <span className="sub">{num(c.count)}</span>
               </button>
@@ -119,7 +118,7 @@ export default function MarketPage() {
 
           {!wide && waiting > 0 && view !== 'offers' && (
             <button className="notice warn deals-alert" onClick={() => setTab('offers')}>
-              <span aria-hidden>🤝</span><b className="grow">{num(waiting)} {t('টি দরদামে আপনার উত্তর দরকার', waiting === 1 ? 'deal needs your answer' : 'deals need your answer')}</b><span aria-hidden>›</span>
+              <span aria-hidden><Mark name="handshake" frame="inline" /></span><b className="grow">{num(waiting)} {t('টি দরদামে আপনার উত্তর দরকার', waiting === 1 ? 'deal needs your answer' : 'deals need your answer')}</b><span aria-hidden>›</span>
             </button>
           )}
 
@@ -132,7 +131,7 @@ export default function MarketPage() {
                 {crops.length > 1 && (
                   <div className="chips market-chips">
                     <button className={`chip${activeCrop ? '' : ' on'}`} aria-pressed={!activeCrop} onClick={() => setCrop(null)}>{t('সব', 'All')}</button>
-                    {crops.map((c) => <button key={c.crop} className={`chip${activeCrop === c.crop ? ' on' : ''}`} aria-pressed={activeCrop === c.crop} onClick={() => setCrop(c.crop)}>{c.emoji} {pick(c)}</button>)}
+                    {crops.map((c) => <button key={c.crop} className={`chip${activeCrop === c.crop ? ' on' : ''}`} aria-pressed={activeCrop === c.crop} onClick={() => setCrop(c.crop)}>{<><CropPicture crop={c.crop} frame="chip" alt="" />{pick(c)}</>}</button>)}
                   </div>
                 )}
                 <div className="row between">
@@ -159,8 +158,8 @@ export default function MarketPage() {
                   ))}
                 </div>
               ) : view === 'listings'
-                ? <Empty icon="🧺">{t('এখন কোনো ফসল বিক্রির জন্য নেই', 'Nothing for sale right now')}</Empty>
-                : <Empty icon="📭">{t('এখন কোনো কেনার পোস্ট নেই', 'No buy posts right now')}</Empty>}
+                ? <Empty icon={<Mark name="basket" frame="empty" />}>{t('এখন কোনো ফসল বিক্রির জন্য নেই', 'Nothing for sale right now')}</Empty>
+                : <Empty icon={<Mark name="inbox" frame="empty" />}>{t('এখন কোনো কেনার পোস্ট নেই', 'No buy posts right now')}</Empty>}
             </>
           )}
 
@@ -227,7 +226,7 @@ function Lot({ item, kind, isFarmer, onAct, onClose }: { item: Base; kind: 'list
   return (
     <article className="lot">
       <div className="lot-photo">
-        {IMAGES.has(item.crop) ? <img src={`/crops/${item.crop}.jpg`} alt="" loading="lazy" /> : <span aria-hidden>{item.emoji}</span>}
+        <img src={cropSrc(item.crop)} alt="" loading="lazy" />
         <div className="lot-tag"><b>৳{num(item.price_per_kg)}</b><span>/{t('কেজি', 'kg')}</span></div>
       </div>
       <div className="lot-body">
@@ -265,7 +264,7 @@ function DealList({ deals, isFarmer, onOpen }: { deals: Offer[]; isFarmer: boole
     <div className="group">
       {deals.map((o) => (
         <button className="cell" key={o.id} onClick={() => onOpen(o)}>
-          <span className="icon-tile" aria-hidden>{o.emoji}</span>
+          <span className="icon-tile" aria-hidden><CropPicture crop={o.crop} /></span>
           <span className="grow">
             <b>{t(o.crop_bn, o.crop_en)}</b>
             <div className="small">{kg(o.quantity_kg, num, t)}, ৳{num(o.price_per_kg)}/{t('কেজি', 'kg')}</div>
@@ -359,13 +358,13 @@ function CreateSheet({ isFarmer, onClose, onDone }: { isFarmer: boolean; onClose
         <>
           <StepBar steps={steps} step={1} title={isFarmer ? t('কোন ফসল বিক্রি করবেন?', 'Which crop are you selling?') : t('কোন ফসল কিনবেন?', 'Which crop do you want?')} hint={t('ফসলে ট্যাপ করুন', 'Tap the crop')} />
           <div className="chips" style={{ flexWrap: 'wrap' }}>
-            {(data?.crops ?? []).map((c) => <button key={c.id} className={`chip${crop === c.id ? ' on' : ''}`} aria-pressed={crop === c.id} onClick={() => { setCrop(c.id); if (!p) setP(String(c.reference_price)); setStage(2) }}>{c.emoji} {pick(c)}</button>)}
+            {(data?.crops ?? []).map((c) => <button key={c.id} className={`chip${crop === c.id ? ' on' : ''}`} aria-pressed={crop === c.id} onClick={() => { setCrop(c.id); if (!p) setP(String(c.reference_price)); setStage(2) }}>{<><CropPicture crop={c.id} frame="chip" alt="" />{pick(c)}</>}</button>)}
           </div>
         </>
       )}
       {stage === 2 && (
         <>
-          <StepBar steps={steps} step={2} title={`${chosen ? `${chosen.emoji} ${pick(chosen)}: ` : ''}${t('পরিমাণ ও দাম', 'quantity and price')}`} />
+          <StepBar steps={steps} step={2} title={<>{chosen && <CropPicture crop={chosen.id} frame="chip" alt="" />}{chosen ? `${pick(chosen)}: ` : ''}{t('পরিমাণ ও দাম', 'quantity and price')}</>} />
           <div className="grid-2">
             <div><label className="lbl" htmlFor="cq">{t('পরিমাণ (কেজি)', 'Quantity (kg)')}</label><input id="cq" className="input" type="number" inputMode="decimal" min={1} value={q} onChange={(e) => setQ(e.target.value)} /></div>
             <div><label className="lbl" htmlFor="cp">{t('দাম (৳/কেজি)', 'Price (৳/kg)')}</label><input id="cp" className="input" type="number" inputMode="decimal" min={1} value={p} onChange={(e) => setP(e.target.value)} /></div>
@@ -377,14 +376,14 @@ function CreateSheet({ isFarmer, onClose, onDone }: { isFarmer: boolean; onClose
       {stage === 3 && (
         <>
           <StepBar steps={steps} step={3} title={t('মিলিয়ে দেখে প্রকাশ করুন', 'Check it, then publish')} hint={t('বিস্তারিত লেখা ঐচ্ছিক।', 'Details are optional.')} />
-          <div className="card row between"><span>{chosen?.emoji} {chosen && pick(chosen)} · {num(Number(q))} {t('কেজি', 'kg')} · ৳{num(Number(p))}</span><b>৳{num(Math.round(Number(q) * Number(p)))}</b></div>
+          <div className="card row between"><span>{chosen && <CropPicture crop={chosen.id} frame="chip" alt="" />}{chosen && pick(chosen)} · {num(Number(q))} {t('কেজি', 'kg')} · ৳{num(Number(p))}</span><b>৳{num(Math.round(Number(q) * Number(p)))}</b></div>
           <input className="input" maxLength={500} placeholder={t('বিস্তারিত (ঐচ্ছিক)', 'Details (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
           {error && <div className="notice high" role="alert">{error}</div>}
           <StepNav onBack={() => setStage(2)} onNext={submit} busy={busy} label={`${t('প্রকাশ করুন', 'Publish')} →`} />
         </>
       )}
       {stage === 4 && (
-        <FlowDone icon="🎉" title={t('প্রকাশ হয়েছে', 'Published')} body={isFarmer ? t('ক্রেতারা এখন দর দিতে পারবেন। দর এলে "দরদাম"-এ দেখবেন।', 'Buyers can now bid. Bids arrive in Deals.') : t('কৃষকরা এখন প্রস্তাব দিতে পারবেন। প্রস্তাব এলে "দরদাম"-এ দেখবেন।', 'Farmers can now send offers. Offers arrive in Deals.')}>
+        <FlowDone icon={<Mark name="harvest" frame="empty" />} title={t('প্রকাশ হয়েছে', 'Published')} body={isFarmer ? t('ক্রেতারা এখন দর দিতে পারবেন। দর এলে "দরদাম"-এ দেখবেন।', 'Buyers can now bid. Bids arrive in Deals.') : t('কৃষকরা এখন প্রস্তাব দিতে পারবেন। প্রস্তাব এলে "দরদাম"-এ দেখবেন।', 'Farmers can now send offers. Offers arrive in Deals.')}>
           <button className="btn block" onClick={onDone}>{t('ঠিক আছে', 'OK')}</button>
         </FlowDone>
       )}
@@ -420,7 +419,7 @@ function OfferSheet({ offer, onClose, onChange }: { offer: Offer; onClose: () =>
   }
 
   return (
-    <Sheet title={<>{offer.emoji} {t(offer.crop_bn, offer.crop_en)}</>} subtitle={`${offer.buyer.organization || offer.buyer.name} ↔ ${offer.farmer.name}`} onClose={onClose}>
+    <Sheet title={<>{<CropPicture crop={offer.crop} frame="inline" alt="" />}{t(offer.crop_bn, offer.crop_en)}</>} subtitle={`${offer.buyer.organization || offer.buyer.name} ↔ ${offer.farmer.name}`} onClose={onClose}>
       <div className="row between"><StatusPill offer={offer} /><b>{t('মোট', 'Total')} ৳{num(Math.round(offer.quantity_kg * offer.price_per_kg))}</b></div>
       <div className="card stack">
         {offer.rounds.map((r, i) => (

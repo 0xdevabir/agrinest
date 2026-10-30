@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ChainCheck, ChangesTable, actionLabel, useStamp, type AuditEntry } from '@/components/audit'
+import { Mark } from '@/components/picture'
 import { Empty, Sheet, Skeletons } from '@/components/ui'
 import { getToken } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
@@ -66,7 +67,7 @@ export default function AuditPage() {
     }
   }
 
-  if (!isAdmin) return <div className="page"><Empty icon="🔒">{t('এই পাতা শুধু জাতীয় প্রশাসকের জন্য', 'This page is for national admins')}</Empty></div>
+  if (!isAdmin) return <div className="page"><Empty icon={<Mark name="lock" frame="empty" />}>{t('এই পাতা শুধু জাতীয় প্রশাসকের জন্য', 'This page is for national admins')}</Empty></div>
 
   return (
     <div className="page wide">
@@ -97,7 +98,7 @@ export default function AuditPage() {
 
       {error && <div className="notice high" role="alert" style={{ marginTop: 12 }}>{error}</div>}
       {!shown && !error && <div style={{ marginTop: 12 }}><Skeletons n={5} /></div>}
-      {shown && !shown.entries.length && <Empty icon="📋">{t('এই খোঁজে কোনো এন্ট্রি নেই', 'No entries match this search')}</Empty>}
+      {shown && !shown.entries.length && <Empty icon={<Mark name="clipboard" frame="empty" />}>{t('এই খোঁজে কোনো এন্ট্রি নেই', 'No entries match this search')}</Empty>}
 
       {shown && shown.entries.length > 0 && (
         <>
