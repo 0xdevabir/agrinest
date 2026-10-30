@@ -7,6 +7,7 @@ import { HEALTH, type Field, type Health, type Localized } from '@/lib/types'
 import { FarmerForm } from './actions'
 import { MapStage, addLandSteps, type StageHandle } from './MapStage'
 import { TabGlyph } from './tab-icons'
+import { CropPicture, Mark, type MarkName } from './picture'
 import { Sheet, StepBar, kg } from './ui'
 
 type Level = { level: number; xp: number; floor: number; next: number; pct: number }
@@ -19,7 +20,7 @@ type FarmData = {
   totals: { acres: number; growing: number; expected_kg: number }
 }
 
-const QUEST_ICON: Record<Quest['type'], string> = { add_land: '📍', guidance: '🧑‍🔬', plant: '🌱', harvest: '🌾', scan: '📸' }
+const QUEST_ICON: Record<Quest['type'], MarkName> = { add_land: 'pin', guidance: 'officer', plant: 'seedling', harvest: 'harvest', scan: 'camera' }
 
 function LandsSheet({ fields, onClose, onOpen, onEdit, onAdd, onChange }: { fields: Field[]; onClose: () => void; onOpen: (id: number) => void; onEdit: (id: number) => void; onAdd: () => void; onChange: () => void | Promise<void> }) {
   const { t, pick, num, toast } = useApp()
@@ -40,7 +41,7 @@ function LandsSheet({ fields, onClose, onOpen, onEdit, onAdd, onChange }: { fiel
           {fields.map((f) => (
             <div className="cell" key={f.id} style={{ padding: 0 }}>
               <button className="cell grow" style={{ minWidth: 0 }} onClick={() => onOpen(f.id)}>
-                <span className="icon-tile" aria-hidden>{f.cycle?.emoji ?? '🟫'}</span>
+                <span className="icon-tile" aria-hidden>{f.cycle ? <CropPicture crop={f.cycle.crop} /> : <Mark name="pin" />}</span>
                 <span className="grow" style={{ minWidth: 0 }}>
                   <b className="truncate" style={{ display: 'block' }}>{f.name}</b>
                   <span className="sub small truncate" style={{ display: 'block' }}>{f.cycle ? pick(f.cycle) : t('ফসল নেই', 'No crop')} · {num(f.area_acres)} {t('একর', 'ac')}</span>
@@ -106,19 +107,19 @@ export function FarmHome() {
       <div className="hud-bottom">
         {alert && (
           <button className={`notice glass ${alert.level === 'high' ? 'high' : 'warn'}`} style={{ margin: '0 12px 8px', border: 0, textAlign: 'left', width: 'calc(100% - 24px)', maxWidth: 480 }} onClick={() => stage.current?.open(alert.field_id)}>
-            <span aria-hidden>⛈️</span><span><b>{alert.field_name}:</b> {pick(alert)}</span>
+            <span aria-hidden><Mark name="storm" frame="inline" /></span><span><b>{alert.field_name}:</b> {pick(alert)}</span>
           </button>
         )}
         <div className="quests">
           {(data?.quests ?? []).map((q) => (
             <button key={q.id} className="quest glass" onClick={() => start(q)}>
-              <span className="icon-tile" aria-hidden>{q.urgent ? '🚨' : QUEST_ICON[q.type]}</span>
+              <span className="icon-tile" aria-hidden>{q.urgent ? <Mark name="alert" /> : <Mark name={QUEST_ICON[q.type]} />}</span>
               <span className="grow" style={{ fontWeight: 600, fontSize: 15 }}>{pick(q)}</span>
               <span className="xp">+{num(q.points)}</span>
             </button>
           ))}
           {data && !data.quests.length && (
-            <div className="quest glass" style={{ cursor: 'default' }}><span className="icon-tile" aria-hidden>✨</span><span style={{ fontWeight: 600 }}>{t('আজকের সব কাজ শেষ!', 'All done for today!')}</span></div>
+            <div className="quest glass" style={{ cursor: 'default' }}><span className="icon-tile" aria-hidden><Mark name="done" /></span><span style={{ fontWeight: 600 }}>{t('আজকের সব কাজ শেষ!', 'All done for today!')}</span></div>
           )}
         </div>
       </div>
@@ -185,7 +186,7 @@ export function AgentHome() {
                 <div className="group">
                   {data.farmers.map((f) => (
                     <button key={f.id} className="cell" onClick={() => draw(f.id)}>
-                      <span className="icon-tile" aria-hidden>🧑‍🌾</span>
+                      <span className="icon-tile" aria-hidden><Mark name="farmer" /></span>
                       <span className="grow"><b>{f.name}</b><div className="sub small truncate">{[f.village, `${num(f.fields_count)} ${t('টি জমি', 'lands')}`].filter(Boolean).join(' · ')}</div></span>
                       <span aria-hidden>›</span>
                     </button>
@@ -201,7 +202,7 @@ export function AgentHome() {
         <div className="hud-bottom">
           <div className="quests">
             {(data?.visit_queue ?? []).map((f) => <LandCard key={f.id} field={f} onOpen={() => stage.current?.open(f.id, 'scan')} />)}
-            {data && !data.visit_queue.length && <div className="quest glass" style={{ cursor: 'default' }}><span className="icon-tile" aria-hidden>✅</span><b>{t('সব ভিজিট শেষ', 'All visits done')}</b></div>}
+            {data && !data.visit_queue.length && <div className="quest glass" style={{ cursor: 'default' }}><span className="icon-tile" aria-hidden><Mark name="done" /></span><b>{t('সব ভিজিট শেষ', 'All visits done')}</b></div>}
           </div>
         </div>
       )}
@@ -258,7 +259,7 @@ export function OfficerHome() {
         </div>
         <div className="quests">
           {shown.map((f) => <LandCard key={f.id} field={f} onOpen={() => stage.current?.open(f.id)} />)}
-          {data && !shown.length && <div className="quest glass" style={{ cursor: 'default' }}><span className="icon-tile" aria-hidden>🌿</span>{t('এই তালিকায় কোনো জমি নেই', 'No land in this list')}</div>}
+          {data && !shown.length && <div className="quest glass" style={{ cursor: 'default' }}><span className="icon-tile" aria-hidden><Mark name="leaf" /></span>{t('এই তালিকায় কোনো জমি নেই', 'No land in this list')}</div>}
         </div>
       </div>
     </MapStage>
@@ -270,7 +271,7 @@ function LandCard({ field, onOpen }: { field: Field; onOpen: () => void }) {
   const h = HEALTH[field.health_status]
   return (
     <button className="quest glass" onClick={onOpen}>
-      <span className="icon-tile" style={{ background: `${h.color}26` }} aria-hidden>{field.cycle?.emoji ?? '🟫'}</span>
+      <span className="icon-tile" aria-hidden>{field.cycle ? <CropPicture crop={field.cycle.crop} /> : <Mark name="pin" />}</span>
       <span className="grow" style={{ minWidth: 0 }}>
         <b className="truncate" style={{ display: 'block' }}>{field.farmer?.name} · {field.name}</b>
         <span className="sub small truncate" style={{ display: 'block' }}>

@@ -8,6 +8,7 @@ import { FarmMap, type MapHandle } from './FarmMap'
 import { FieldSheet, type FieldIntent } from './FieldSheet'
 import { PlantSheet } from './actions'
 import { LandDrawHud } from './LandDrawHud'
+import { Mark } from './picture'
 import { FlowDone, Sheet, StepBar, StepNav } from './ui'
 import { useLandDraft } from './useLandDraft'
 
@@ -214,7 +215,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
       {added?.ended && (
         <Sheet title={t('জমি যোগ হয়েছে', 'Land added')} subtitle={added.field.name} onClose={() => setAdded(null)}>
           <FlowDone
-            icon={added.planted ? '🌱' : '✅'}
+            icon={added.planted ? <Mark name="seedling" frame="empty" /> : <Mark name="done" frame="empty" />}
             title={added.planted ? t('জমি ও ফসল প্রস্তুত!', 'Land and crop are set!') : t('জমি সংরক্ষণ হয়েছে', 'The land is saved')}
             body={added.planted
               ? t('এখন ফসলের ছবি পাঠান, যাতে ফসলের অবস্থা দেখা যায়।', 'Now send crop photos so its health can be checked.')

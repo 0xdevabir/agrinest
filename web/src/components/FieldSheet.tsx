@@ -5,12 +5,13 @@ import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
 import type { Field, FieldDetail, Scan } from '@/lib/types'
 import { EditLandSheet, GuidanceSheet, HarvestSheet, PlantSheet, ReviewSheet, ScanCard, ScanSheet } from './actions'
+import { CropPicture, Mark, type MarkName } from './picture'
 import { HealthPill, Sheet, dateLabel, kg } from './ui'
 
 export type FieldIntent = 'plant' | 'scan' | 'harvest' | 'edit-land'
 type Action = FieldIntent | 'guidance' | 'edit-crop' | null
 
-const ADVICE_ICON: Record<string, string> = { water: '💧', fertilizer: '🧪', scan: '📸', harvest: '🌾' }
+const ADVICE_MARK: Record<string, MarkName> = { water: 'water', fertilizer: 'fertilizer', scan: 'camera', harvest: 'harvest' }
 
 export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }: { id: number; intent?: FieldIntent; preview?: Field; onClose: () => void; onChange: () => void | Promise<void>; onRedraw: () => void }) {
   const { t, pick, num, lang, user, toast, refreshUser } = useApp()
@@ -63,7 +64,7 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
     <>
       <Sheet
         overMap
-        title={<>{cycle?.emoji ?? '🟫'} {head?.name ?? '…'}</>}
+        title={<>{cycle ? <CropPicture crop={cycle.crop} frame="inline" alt="" /> : <Mark name="pin" frame="inline" />}{head?.name ?? '…'}</>}
         subtitle={head && <>{head.farmer?.name} · {num(head.area_acres)} {t('একর', 'acres')}{head.village ? ` · ${head.village}` : ''}</>}
         onClose={onClose}
       >
@@ -86,7 +87,7 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
                   <div className="progress" role="progressbar" aria-valuenow={f.cycle.progress.pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${f.cycle.progress.pct}%` }} /></div>
                   <div className="sub small">
                     {f.cycle.progress.ready
-                      ? `🌾 ${t('ফসল তোলার সময় হয়েছে', 'Ready to harvest')}`
+                      ? <><Mark name="harvest" frame="chip" />{t('ফসল তোলার সময় হয়েছে', 'Ready to harvest')}</>
                       : `${t('ফসল তুলতে আরও প্রায়', 'Harvest in about')} ${num(f.cycle.progress.harvest_in_days)} ${t('দিন', 'days')}`}
                   </div>
                 </>
@@ -110,10 +111,10 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
             </div>
 
             {f.alerts.map((a) => (
-              <div key={a.code} className={`notice ${a.level === 'high' ? 'high' : a.level === 'medium' ? 'warn' : 'info'}`}><span aria-hidden>⛈️</span><span>{pick(a)}</span></div>
+              <div key={a.code} className={`notice ${a.level === 'high' ? 'high' : a.level === 'medium' ? 'warn' : 'info'}`}><span aria-hidden><Mark name="storm" frame="inline" /></span><span>{pick(a)}</span></div>
             ))}
 
-            {pendingGuidance.length > 0 && <h3 className="section-title" style={{ margin: '6px 0 -2px' }}>🧑‍🔬 {t('কর্মকর্তার পরামর্শ', 'From your officer')}</h3>}
+            {pendingGuidance.length > 0 && <h3 className="section-title" style={{ margin: '6px 0 -2px' }}><Mark name="officer" frame="chip" />{t('কর্মকর্তার পরামর্শ', 'From your officer')}</h3>}
             {pendingGuidance.map((g) => (
               <div key={g.id} className="card stack" style={{ borderLeft: `4px solid ${g.priority === 'urgent' ? 'var(--urgent)' : 'var(--sage)'}` }}>
                 <div><b>{g.title}</b><div style={{ marginTop: 4 }}>{g.body}</div></div>
@@ -128,7 +129,7 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
               <>
                 <h3 className="section-title" style={{ margin: '6px 0 -2px' }}>{t('আজ কী করবেন', 'What to do today')}</h3>
                 <div className="group">
-                  {f.advice.map((a, i) => <div className="cell" key={i}><span className="icon-tile" aria-hidden>{ADVICE_ICON[a.icon] ?? '🌿'}</span><span>{pick(a)}</span></div>)}
+                  {f.advice.map((a, i) => <div className="cell" key={i}><span className="icon-tile" aria-hidden><Mark name={ADVICE_MARK[a.icon] ?? 'leaf'} /></span><span>{pick(a)}</span></div>)}
                 </div>
               </>
             )}
@@ -163,7 +164,7 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
 
             {f.yield && (
               <>
-                <h3 className="section-title" style={{ margin: '6px 0 -2px' }}>📈 {t('সম্ভাব্য ফলন', 'Expected yield')}</h3>
+                <h3 className="section-title" style={{ margin: '6px 0 -2px' }}><Mark name="harvest" frame="chip" />{t('সম্ভাব্য ফলন', 'Expected yield')}</h3>
                 <div className="card stack">
                   <div><b style={{ fontSize: 24 }}>{kg(f.yield.low_kg, num, t)} – {kg(f.yield.high_kg, num, t)}</b>
                     <div className="sub small">{t('এই জমির সর্বোচ্চ সম্ভাবনা', 'This land could reach')} {kg(f.yield.potential_kg, num, t)}</div></div>
@@ -176,7 +177,7 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
               </>
             )}
 
-            {f.scans.length > 0 && <h3 className="section-title" style={{ margin: '6px 0 -2px' }}>🛡️ {t('ক্রপ গার্ড', 'Crop Guard')}</h3>}
+            {f.scans.length > 0 && <h3 className="section-title" style={{ margin: '6px 0 -2px' }}><Mark name="search" frame="chip" />{t('ক্রপ গার্ড', 'Crop Guard')}</h3>}
             {f.scans.slice(0, 5).map((s) => (
               <ScanCard key={s.id} scan={s} action={isOfficer && s.status === 'pending' ? <button className="btn block" onClick={() => setReviewing(s)}>🔬 {t('রিভিউ করুন', 'Review')}</button> : undefined} />
             ))}
@@ -184,11 +185,11 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
 
             {!f.cycle && f.next_crops.length > 0 && (
               <>
-                <h3 className="section-title" style={{ margin: '6px 0 -2px' }}>🌱 {t('পরে কী লাগাবেন', 'What to plant next')}</h3>
+                <h3 className="section-title" style={{ margin: '6px 0 -2px' }}><Mark name="seedling" frame="chip" />{t('পরে কী লাগাবেন', 'What to plant next')}</h3>
                 <div className="group">
                   {f.next_crops.map((c) => (
                     <div className="cell" key={c.crop}>
-                      <span className="icon-tile" aria-hidden>{c.emoji}</span>
+                      <span className="icon-tile" aria-hidden><CropPicture crop={c.crop} /></span>
                       <span className="grow"><b>{pick(c)}</b><div className="sub small">{c.reasons.map((r) => pick(r)).join(' · ')}</div></span>
                       <span className="small" style={{ textAlign: 'right' }}><b>~{kg(c.expected_kg, num, t)}</b><div className="sub">৳{num(c.expected_value_bdt)}</div></span>
                     </div>
@@ -204,7 +205,7 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
                 <div className="group">
                   {f.history.map((h) => (
                     <div className="cell" key={h.id}>
-                      <span aria-hidden>{h.emoji}</span>
+                      <span className="icon-tile" aria-hidden><CropPicture crop={h.crop} /></span>
                       <span className="grow">{pick(h)}{h.harvested_on && <span className="sub small"> · {dateLabel(h.harvested_on, lang)}</span>}</span>
                       {h.actual_yield_kg != null && <b className="small">{kg(h.actual_yield_kg, num, t)}</b>}
                     </div>

@@ -6,6 +6,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { getToken } from '@/lib/api'
 import { useApp } from '@/lib/app'
 import { metres } from '@/lib/landGeo'
+import { cropSrc } from '@/components/picture'
 import { HEALTH, type Field } from '@/lib/types'
 
 export type MapHandle = {
@@ -360,7 +361,10 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
       orb.style.setProperty('--c', HEALTH[f.health_status].color)
       orb.style.setProperty('--p', String(f.cycle?.progress.pct ?? 0))
       const inner = document.createElement('span')
-      inner.textContent = f.cycle?.emoji ?? '🟫'
+      const img = document.createElement('img')
+      img.alt = ''
+      img.src = cropSrc(f.cycle?.crop)
+      inner.appendChild(img)
       orb.appendChild(inner)
       const label = document.createElement('div')
       label.className = 'crop-label'

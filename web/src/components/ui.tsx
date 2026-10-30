@@ -65,7 +65,7 @@ export function StepNav({ onBack, onNext, label, disabled, busy }: { onBack?: ()
 }
 
 /** Ends a flow: says what just happened and offers the next thing to do. */
-export function FlowDone({ icon, title, body, children }: { icon: string; title: ReactNode; body?: ReactNode; children: ReactNode }) {
+export function FlowDone({ icon, title, body, children }: { icon: ReactNode; title: ReactNode; body?: ReactNode; children: ReactNode }) {
   return (
     <>
       <div className="flow-done">
@@ -152,7 +152,7 @@ export function Skeletons({ n = 3 }: { n?: number }) {
   return <div className="stack">{Array.from({ length: n }, (_, i) => <div key={i} className="skeleton" style={{ height: 84 }} />)}</div>
 }
 
-export function Empty({ icon, children }: { icon: string; children: ReactNode }) {
+export function Empty({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return <div className="empty"><b aria-hidden>{icon}</b>{children}</div>
 }
 

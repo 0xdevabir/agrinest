@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { api } from '@/lib/api'
 import { useApp, useData } from '@/lib/app'
 import { HEALTH, type Crop, type Field, type Health, type Scan } from '@/lib/types'
+import { CropPicture, Mark } from './picture'
 import { FlowDone, HealthPill, Sheet, StepBar, StepNav, dateLabel } from './ui'
 
 type ActionProps = { field: Field; onClose: () => void; onDone: () => void | Promise<void> }
@@ -92,7 +93,7 @@ export function PlantSheet({ field, flow, onClose, onDone, onPhotos }: ActionPro
     <div className="grid-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))' }}>
       {(data?.crops ?? []).map((c) => (
         <button key={c.id} aria-pressed={crop === c.id} className="card" style={{ border: `2px solid ${crop === c.id ? 'var(--sage)' : 'transparent'}`, cursor: 'pointer', textAlign: 'center', padding: 10 }} onClick={() => { setCrop(c.id); if (!growing) setStage('date') }}>
-          <div style={{ fontSize: 30 }} aria-hidden>{c.emoji}</div>
+          <CropPicture crop={c.id} frame="card" alt="" />
           <div className="small" style={{ fontWeight: 600 }}>{pick(c)}</div>
           <div className="sub" style={{ fontSize: 11 }}>{num(c.days)} {t('দিন', 'days')}</div>
         </button>
@@ -122,7 +123,7 @@ export function PlantSheet({ field, flow, onClose, onDone, onPhotos }: ActionPro
     return (
       <Sheet title={t('ফসল লাগানো হয়েছে', 'Crop planted')} subtitle={field.name} onClose={onDone}>
         <StepBar steps={steps} step={3} title={t('সব ঠিক আছে', 'All set')} />
-        <FlowDone icon="🌱" title={`${chosen ? pick(chosen) : ''} ${t('যোগ হয়েছে', 'added')}`} body={t('এখন ফসলের ছবি পাঠান, যাতে ফসলের অবস্থা দেখা যায়।', 'Now send crop photos so its health can be checked.')}>
+        <FlowDone icon={<Mark name="seedling" frame="empty" />} title={`${chosen ? pick(chosen) : ''} ${t('যোগ হয়েছে', 'added')}`} body={t('এখন ফসলের ছবি পাঠান, যাতে ফসলের অবস্থা দেখা যায়।', 'Now send crop photos so its health can be checked.')}>
           {onPhotos && <button className="btn block" onClick={onPhotos}>📸 {t('ছবি পাঠান', 'Send photos')}</button>}
           <button className="btn soft block" onClick={onDone}>{t('এখন শেষ', 'Done for now')}</button>
         </FlowDone>
@@ -141,7 +142,7 @@ export function PlantSheet({ field, flow, onClose, onDone, onPhotos }: ActionPro
         </>
       ) : (
         <>
-          <StepBar steps={steps} step={step} title={`${chosen ? `${chosen.emoji} ${pick(chosen)}: ` : ''}${t('কবে লাগিয়েছেন?', 'When was it sown?')}`} hint={t('তারিখ দিন। জাত জানা না থাকলে খালি রাখুন।', 'Set the date. Leave the variety empty if unknown.')} />
+          <StepBar steps={steps} step={step} title={<>{chosen && <CropPicture crop={chosen.id} frame="chip" alt="" />}{chosen ? `${pick(chosen)}: ` : ''}{t('কবে লাগিয়েছেন?', 'When was it sown?')}</>} hint={t('তারিখ দিন। জাত জানা না থাকলে খালি রাখুন।', 'Set the date. Leave the variety empty if unknown.')} />
           {dateFields}
           <Err text={error} />
           <StepNav onBack={() => setStage('crop')} onNext={submit} disabled={!crop || !sown} busy={busy} label={`✓ ${t('ফসল সংরক্ষণ করুন', 'Save crop')}`} />
@@ -229,7 +230,7 @@ export function ScanSheet({ field, onClose, onDone }: ActionProps) {
             </div>
           )}
           <button className="btn soft block" style={{ minHeight: previews.length ? 50 : 130, flexDirection: 'column' }} disabled={files.length >= 6} onClick={() => input.current?.click()}>
-            {!previews.length && <span style={{ fontSize: 34 }} aria-hidden>📷</span>}
+            {!previews.length && <Mark name="camera" frame="card" />}
             {previews.length ? t('আরও ছবি তুলুন', 'Add more photos') : t('ছবি তুলুন (৬টি পর্যন্ত)', 'Take photos (up to 6)')}
           </button>
           <StepNav onNext={() => setNoting(true)} disabled={!files.length} />
@@ -257,7 +258,7 @@ export function HarvestSheet({ field, onClose, onDone, onPlant }: ActionProps & 
     return (
       <Sheet title={t('ফসল তোলা শেষ', 'Harvest finished')} subtitle={field.name} onClose={onDone}>
         <StepBar steps={steps} step={2} title={t('এরপর কী করবেন?', 'What next?')} />
-        <FlowDone icon="🌾" title={`${num(Number(amount))} ${t('কেজি লেখা হয়েছে', 'kg recorded')}`} body={t('এই তথ্য থেকে পরের মৌসুমের হিসাব আরও ঠিক হবে।', 'This makes next season\'s estimate more accurate.')}>
+        <FlowDone icon={<Mark name="harvest" frame="empty" />} title={`${num(Number(amount))} ${t('কেজি লেখা হয়েছে', 'kg recorded')}`} body={t('এই তথ্য থেকে পরের মৌসুমের হিসাব আরও ঠিক হবে।', 'This makes next season\'s estimate more accurate.')}>
           {user?.role === 'farmer' && <Link href="/market" className="btn block">🛒 {t('ফসল বিক্রি করুন', 'Sell this crop')}</Link>}
           <button className={`btn block${user?.role === 'farmer' ? ' soft' : ''}`} onClick={onPlant}>🌱 {t('নতুন ফসল লাগান', 'Plant the next crop')}</button>
           <button className="btn soft block" onClick={onDone}>{t('এখন শেষ', 'Done for now')}</button>
@@ -313,7 +314,7 @@ export function GuidanceSheet({ field, onClose, onDone }: ActionProps) {
       {stage === 3 && (
         <>
           <StepBar steps={steps} step={3} title={t('পরামর্শ পাঠানো হয়েছে', 'Guidance sent')} />
-          <FlowDone icon="✅" title={t(`${who} এটি জমিতে দেখবেন`, `${who} will see this on the land`)} body={t('কাজ শেষ করে তিনি "করেছি" চাপবেন।', 'They press "Done" once the work is finished.')}>
+          <FlowDone icon={<Mark name="done" frame="empty" />} title={t(`${who} এটি জমিতে দেখবেন`, `${who} will see this on the land`)} body={t('কাজ শেষ করে তিনি "করেছি" চাপবেন।', 'They press "Done" once the work is finished.')}>
             <button className="btn block" onClick={onDone}>{t('ঠিক আছে', 'OK')}</button>
           </FlowDone>
         </>
@@ -373,7 +374,7 @@ export function ReviewSheet({ scan, onClose, onDone }: { scan: Scan; onClose: ()
       {stage === 4 && (
         <>
           <StepBar steps={steps} step={4} title={t('রিভিউ পাঠানো হয়েছে', 'Review sent')} />
-          <FlowDone icon="✅" title={t(`${who} পরামর্শ পেয়েছেন`, `${who} has the guidance`)} body={t('এই স্ক্যান রিভিউ তালিকা থেকে সরে গেছে।', 'This scan has left the review queue.')}>
+          <FlowDone icon={<Mark name="done" frame="empty" />} title={t(`${who} পরামর্শ পেয়েছেন`, `${who} has the guidance`)} body={t('এই স্ক্যান রিভিউ তালিকা থেকে সরে গেছে।', 'This scan has left the review queue.')}>
             <button className="btn block" onClick={onDone}>{t('ঠিক আছে', 'OK')}</button>
           </FlowDone>
         </>
