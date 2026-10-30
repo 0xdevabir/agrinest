@@ -7,8 +7,8 @@ import type { Field, FieldDetail, Scan } from '@/lib/types'
 import { EditLandSheet, GuidanceSheet, HarvestSheet, PlantSheet, ReviewSheet, ScanCard, ScanSheet } from './actions'
 import { HealthPill, Sheet, dateLabel, kg } from './ui'
 
-export type FieldIntent = 'plant' | 'scan' | 'harvest'
-type Action = FieldIntent | 'guidance' | 'edit-crop' | 'edit-land' | null
+export type FieldIntent = 'plant' | 'scan' | 'harvest' | 'edit-land'
+type Action = FieldIntent | 'guidance' | 'edit-crop' | null
 
 const ADVICE_ICON: Record<string, string> = { water: '💧', fertilizer: '🧪', scan: '📸', harvest: '🌾' }
 
@@ -27,7 +27,7 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
   useEffect(() => {
     if (!f || !intent || intentUsed || !canManage) return
     setIntentUsed(true)
-    if (intent === 'plant' ? !f.cycle : !!f.cycle) setAction(intent)
+    if (intent === 'edit-land' || (intent === 'plant' ? !f.cycle : !!f.cycle)) setAction(intent)
   }, [f, intent, intentUsed, canManage])
 
   const updated = async () => {
