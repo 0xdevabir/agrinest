@@ -3,11 +3,11 @@ import { I18nProvider } from '../i18n/I18nProvider'
 import '../styles/globals.css'
 
 export const metadata: Metadata = {
-  title: 'AgriSathi — অ্যাগ্রিসাথী',
+  title: 'AgriNest — অ্যাগ্রিনেস্ট',
   description: 'বাংলায় আপনার AI কৃষি সহায়ক',
   manifest: '/manifest.webmanifest',
   icons: { icon: '/favicon.svg' },
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'AgriSathi' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'AgriNest' },
 }
 
 export const viewport: Viewport = {
@@ -34,3 +34,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   )
 }
+
+

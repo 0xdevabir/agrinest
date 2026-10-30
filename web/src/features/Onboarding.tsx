@@ -69,7 +69,7 @@ export function Onboarding() {
 
       <div className="onboard-card glass-float">
         <p className="brand">
-          AgriSathi<span>.</span>
+          AgriNest<span>.</span>
         </p>
         <p className="tagline">{t('onboard.tagline')}</p>
 
@@ -105,3 +105,4 @@ export function Onboarding() {
     </div>
   )
 }
+

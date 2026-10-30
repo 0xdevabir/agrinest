@@ -9,7 +9,7 @@ from app.weather import get_weather
 from app.workbench import build_desk
 from app.yield_engine import estimate_yield
 
-app = FastAPI(title="AgriSathi Agronomy", version="0.1.0")
+app = FastAPI(title="AgriNest Agronomy", version="0.1.0")
 
 
 class FieldContext(BaseModel):
@@ -66,3 +66,4 @@ def yield_estimate(body: YieldIn):
 async def desk(body: DeskIn):
     weather = await get_weather(body.lat, body.lon, body.force_seed_weather)
     return build_desk(body.crop, body.variety, body.area_ha, body.sowing_date, body.district, weather, body.events)
+

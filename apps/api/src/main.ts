@@ -19,7 +19,7 @@ async function bootstrap() {
 
   if (process.env.SWAGGER_ENABLED !== "false") {
     const config = new DocumentBuilder()
-      .setTitle("AgriSathi API")
+      .setTitle("AgriNest API")
       .setDescription("Bangla-first farming API — Farmer, Field, Event")
       .setVersion("0.1.0")
       .addTag("farmers")
@@ -32,8 +32,10 @@ async function bootstrap() {
   const port = Number(process.env.PORT || 8000);
   const host = process.env.HOST || "0.0.0.0";
   await app.listen(port, host);
-  console.log(`AgriSathi API http://${host}:${port}/${prefix}`);
+  console.log(`AgriNest API http://${host}:${port}/${prefix}`);
 }
 
 void bootstrap();
+
+
 

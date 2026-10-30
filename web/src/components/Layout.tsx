@@ -104,7 +104,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="topbar-brand">
           <span className="mark">অ</span>
           <div>
-            <strong>AgriSathi</strong>
+            <strong>AgriNest</strong>
             <small>{t('brand.sub')}</small>
           </div>
         </div>
@@ -369,3 +369,4 @@ export function Layout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+

@@ -2,7 +2,7 @@ export type Lang = 'bn' | 'en'
 
 export const messages = {
   bn: {
-    'brand.sub': 'কৃষিসাথী',
+    'brand.sub': 'অ্যাগ্রিনেস্ট',
     'nav.home': 'হোম',
     'nav.precision': 'প্রিসিশন ফার্ম',
     'nav.precision.short': 'সেচ',
@@ -270,7 +270,7 @@ export const messages = {
     'guardian.retake': 'আবার তুলুন',
   },
   en: {
-    'brand.sub': 'Farm companion',
+    'brand.sub': 'Farming assistant',
     'nav.home': 'Home',
     'nav.precision': 'Precision Farm',
     'nav.precision.short': 'Inputs',
@@ -540,6 +540,9 @@ export const messages = {
 } as const
 
 export type MessageKey = keyof typeof messages.bn
+
+
+
 
 
 

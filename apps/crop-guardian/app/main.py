@@ -5,7 +5,7 @@ from app.classify import backup_classify, classify_leaf, resize_image_bytes
 from app.config import THRESHOLD
 from app.polish import polish_steps
 
-app = FastAPI(title="AgriSathi Crop Guardian", version="0.1.0")
+app = FastAPI(title="AgriNest Crop Guardian", version="0.1.0")
 
 
 class PolishIn(BaseModel):
