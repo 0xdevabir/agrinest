@@ -225,19 +225,20 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .price-board, .deals-rail { display: none; }
 
 .lots { display: grid; gap: 12px; }
-/* A lot lies flat on phones (photo beside the name) and stands up in a grid on wider screens. */
-.lot { position: relative; display: grid; grid-template-columns: clamp(96px, 26%, 240px) minmax(0, 1fr); background: var(--card); border-radius: var(--r-lg); overflow: hidden; }
-.lot-photo { min-height: 104px; margin: 12px 0 0 12px; border-radius: 14px; background-size: cover; background-position: center; background-color: var(--tint); display: grid; place-items: center; font-size: 42px; }
-.lot-tag { position: absolute; top: 12px; right: 12px; display: flex; align-items: baseline; padding: 4px 10px; border-radius: 10px; background: var(--cream); white-space: nowrap; }
-.lot-tag b { font-size: 21px; letter-spacing: -0.02em; }
+/* The crop photo leads every lot; a lone lot on a wider screen sits beside its details instead. */
+.lot { display: flex; flex-direction: column; background: var(--card); border-radius: var(--r-lg); overflow: hidden; }
+.lot-photo { position: relative; flex: none; aspect-ratio: 3 / 2; background: var(--tint); display: grid; place-items: center; font-size: 64px; }
+.lot-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lot-tag { position: absolute; left: 12px; bottom: 12px; display: flex; align-items: baseline; padding: 5px 12px; border-radius: 12px; background: var(--cream); box-shadow: 0 4px 14px rgba(20, 25, 25, .25); white-space: nowrap; }
+.lot-tag b { font-size: 22px; letter-spacing: -0.02em; }
 .lot-tag span { font-size: 12px; color: var(--ink-2); margin-left: 1px; }
-.lot-head { padding: 14px 12px 0; min-width: 0; }
-.lot-head h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; padding-right: 92px; min-height: 36px; }
-.gauge { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.lot-body { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 14px; min-width: 0; }
+.lot-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+.lot-head h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; min-width: 0; }
+.gauge { display: flex; flex-direction: column; gap: 5px; }
 .gauge-track { position: relative; height: 4px; border-radius: 99px; background: var(--line); }
 .gauge-track::before { content: ""; position: absolute; left: 50%; top: -3px; width: 2px; height: 10px; background: var(--ink-2); opacity: .5; }
 .gauge-track i { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--card); transform: translate(-50%, -50%); }
-.lot-foot { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; padding: 12px; min-width: 0; }
 .lot-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px 12px; margin: 0; padding-top: 10px; border-top: 1px solid var(--line); }
 .lot-facts dt { font-size: 12px; color: var(--ink-2); }
 .lot-facts dd { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
@@ -251,12 +252,8 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
   .market-chips { flex-wrap: wrap; margin: 0; padding: 0; }
   .lots { grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
   .lots.one { grid-template-columns: minmax(0, 1fr); }
-  .lots:not(.one) .lot { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto 1fr; }
-  .lots:not(.one) .lot-photo { min-height: 168px; margin: 0; border-radius: 0; font-size: 64px; }
-  .lots:not(.one) .lot-tag { right: auto; left: 12px; transform: rotate(-2deg); box-shadow: 0 4px 14px rgba(20, 25, 25, .25); }
-  .lots:not(.one) .lot-head h3 { padding-right: 0; min-height: 0; }
-  .lots:not(.one) .lot-foot { padding: 12px 14px 14px; }
-  .lots:not(.one) .lot-head { padding: 14px 14px 0; }
+  .lots.one .lot { flex-direction: row; }
+  .lots.one .lot-photo { flex-basis: 44%; aspect-ratio: auto; min-height: 320px; }
 }
 
 @media (min-width: 1180px) {

@@ -124,7 +124,7 @@ export default function MarketPage() {
           )}
 
           {error && <div className="notice high" role="alert">{error}</div>}
-          {!data && !error && <div className="lots">{[0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 240 }} />)}</div>}
+          {!data && !error && <div className="lots">{[0, 1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 420 }} />)}</div>}
 
           {data && view !== 'offers' && (
             <>
@@ -226,13 +226,16 @@ function Lot({ item, kind, isFarmer, onAct, onClose }: { item: Base; kind: 'list
 
   return (
     <article className="lot">
-      <div className="lot-photo" style={IMAGES.has(item.crop) ? { backgroundImage: `url(/crops/${item.crop}.jpg)` } : undefined}>{!IMAGES.has(item.crop) && <span aria-hidden>{item.emoji}</span>}</div>
-      <div className="lot-tag"><b>৳{num(item.price_per_kg)}</b><span>/{t('কেজি', 'kg')}</span></div>
-      <div className="lot-head">
-        <h3>{pick(item)}</h3>
-        <PriceGauge price={item.price_per_kg} usual={item.reference_price} sellerView={isFarmer} />
+      <div className="lot-photo">
+        {IMAGES.has(item.crop) ? <img src={`/crops/${item.crop}.jpg`} alt="" loading="lazy" /> : <span aria-hidden>{item.emoji}</span>}
+        <div className="lot-tag"><b>৳{num(item.price_per_kg)}</b><span>/{t('কেজি', 'kg')}</span></div>
       </div>
-      <div className="lot-foot">
+      <div className="lot-body">
+        <div className="lot-head">
+          <h3>{pick(item)}</h3>
+          {health && health !== 'unknown' && <HealthPill status={health} />}
+        </div>
+        <PriceGauge price={item.price_per_kg} usual={item.reference_price} sellerView={isFarmer} />
         <dl className="lot-facts">
           <div><dt>{t('পরিমাণ', 'Quantity')}</dt><dd>{kg(item.quantity_kg, num, t)}</dd></div>
           <div><dt>{t('মোট দাম', 'Total value')}</dt><dd>৳{num(Math.round(item.quantity_kg * item.price_per_kg))}</dd></div>
@@ -240,7 +243,6 @@ function Lot({ item, kind, isFarmer, onAct, onClose }: { item: Base; kind: 'list
           {item.district && <div><dt>{t('জেলা', 'District')}</dt><dd>{item.district}</dd></div>}
           {post?.needed_by && <div><dt>{t('কবে দরকার', 'Needed by')}</dt><dd>{dateLabel(post.needed_by, lang)}</dd></div>}
         </dl>
-        {health && health !== 'unknown' && <div><HealthPill status={health} /></div>}
         {item.note && <p className="small">{item.note}</p>}
         <div className="lot-action">
           {item.mine ? (
