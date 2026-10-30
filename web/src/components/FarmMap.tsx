@@ -194,7 +194,8 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
         if (!tag) {
           const el = document.createElement('div')
           el.className = 'edge-tag'
-          tag = new maplibregl.Marker({ element: el }).setLngLat(e[0] as [number, number]).addTo(m)
+          // Lifted off the edge so the handle at its midpoint stays visible.
+          tag = new maplibregl.Marker({ element: el, offset: [0, -18] }).setLngLat(e[0] as [number, number]).addTo(m)
           edgeTags.current[i] = tag
         }
         tag.setLngLat(midpoint(e[0], e[1]) as [number, number])
