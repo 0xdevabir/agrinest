@@ -34,7 +34,7 @@ function readHiddenAlerts(): string[] {
   } catch { return [] }
 }
 
-function LandsSheet({ fields, onClose, onOpen, onEdit, onAdd, onChange }: { fields: Field[]; onClose: () => void; onOpen: (id: number) => void; onEdit: (id: number) => void; onAdd: () => void; onChange: () => void | Promise<void> }) {
+function LandsSheet({ fields, onClose, onOpen, onRoute, onEdit, onAdd, onChange }: { fields: Field[]; onClose: () => void; onOpen: (id: number) => void; onRoute: (id: number) => void; onEdit: (id: number) => void; onAdd: () => void; onChange: () => void | Promise<void> }) {
   const { t, pick, num, toast } = useApp()
 
   const remove = async (f: Field) => {
@@ -59,6 +59,7 @@ function LandsSheet({ fields, onClose, onOpen, onEdit, onAdd, onChange }: { fiel
                   <span className="sub small truncate" style={{ display: 'block' }}>{f.cycle ? pick(f.cycle) : t('ফসল নেই', 'No crop')} · {num(f.area_acres)} {t('একর', 'ac')}</span>
                 </span>
               </button>
+              <button className="close" style={{ marginRight: 8, flex: 'none' }} aria-label={`${t('যাওয়ার পথ', 'Directions')}: ${f.name}`} title={t('যাওয়ার পথ', 'Directions')} onClick={() => onRoute(f.id)}>🧭</button>
               <button className="close" style={{ marginRight: 8, flex: 'none' }} aria-label={`${t('সম্পাদনা', 'Edit')}: ${f.name}`} onClick={() => onEdit(f.id)}>✏️</button>
               <button className="close" style={{ marginRight: 12, flex: 'none' }} aria-label={`${t('মুছুন', 'Delete')}: ${f.name}`} onClick={() => remove(f)}>🗑️</button>
             </div>
@@ -118,6 +119,7 @@ export function FarmHome() {
           fields={fields}
           onClose={() => setManaging(false)}
           onOpen={(id) => { setManaging(false); stage.current?.open(id) }}
+          onRoute={(id) => { setManaging(false); stage.current?.route(id) }}
           onEdit={(id) => { setManaging(false); stage.current?.open(id, 'edit-land') }}
           onAdd={() => { setManaging(false); setDrawing(true) }}
           onChange={changed}

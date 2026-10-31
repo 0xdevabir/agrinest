@@ -121,6 +121,13 @@ class AtlasClient
             return null;
         }
 
+        $alternatives = array_filter($data['alternatives'] ?? [], fn ($alt) => ! empty($alt['path']));
+
+        return [...$this->routeShape($data), 'alternatives' => array_map($this->routeShape(...), array_values($alternatives))];
+    }
+
+    private function routeShape(array $data): array
+    {
         return [
             'summary' => $data['summary'] ?? null,
             'distance_m' => $data['distance']['value'] ?? 0,

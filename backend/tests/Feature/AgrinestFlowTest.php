@@ -274,6 +274,10 @@ class AgrinestFlowTest extends TestCase
             'duration' => ['value' => 300],
             'path' => [['lat' => 24.74, 'lng' => 90.41], ['lat' => 24.75, 'lng' => 90.42]],
             'legs' => [['steps' => [['instruction' => 'Turn left onto Rd 10', 'maneuver' => 'turn-left', 'distance' => ['value' => 900], 'startLocation' => ['lat' => 24.74, 'lng' => 90.41]]]]],
+            'alternatives' => [
+                ['summary' => 'River Rd', 'distance' => ['value' => 1200], 'duration' => ['value' => 420], 'path' => [['lat' => 24.74, 'lng' => 90.41], ['lat' => 24.76, 'lng' => 90.42]]],
+                ['summary' => 'No geometry', 'distance' => ['value' => 1500], 'duration' => ['value' => 500], 'path' => []],
+            ],
         ]])]);
 
         $this->postJson('/api/map/route', ['from' => ['lat' => 24.74, 'lng' => 90.41], 'to' => ['lat' => 24.75, 'lng' => 90.42], 'mode' => 'walking'])
@@ -281,7 +285,10 @@ class AgrinestFlowTest extends TestCase
             ->assertJsonPath('route.distance_m', 900)
             ->assertJsonPath('route.path.0', [90.41, 24.74])
             ->assertJsonPath('route.steps.0.maneuver', 'turn-left')
-            ->assertJsonPath('route.steps.0.at', [90.41, 24.74]);
+            ->assertJsonPath('route.steps.0.at', [90.41, 24.74])
+            ->assertJsonCount(1, 'route.alternatives')
+            ->assertJsonPath('route.alternatives.0.summary', 'River Rd')
+            ->assertJsonPath('route.alternatives.0.path.1', [90.42, 24.76]);
 
         Http::assertSent(fn ($r) => str_ends_with($r->url(), '/v1/routes') && $r['mode'] === 'walking');
     }

@@ -178,6 +178,9 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .map-tools { position: fixed; z-index: 10; right: 12px; top: calc(env(safe-area-inset-top) + 204px); display: flex; flex-direction: column; gap: 8px; }
 .route-steps { max-height: 26dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px 4px; }
 .route-steps > div.on { font-weight: 700; }
+.route-options { display: flex; flex-direction: column; gap: 4px; }
+.route-options button { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; padding: 6px 10px; border: 2px solid var(--line); border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.route-options button.on { border-color: #2f7bf6; font-weight: 600; }
 @media (min-width: 900px) { .map-tools { top: calc(env(safe-area-inset-top) + 84px); right: 16px; } }
 .draw-tools { position: fixed; z-index: 10; right: 12px; top: calc(env(safe-area-inset-top) + 212px); display: flex; flex-direction: column; gap: 6px; }
 .draw-tools .round { width: 40px; height: 40px; font-size: 18px; }

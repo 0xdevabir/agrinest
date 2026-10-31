@@ -16,7 +16,7 @@ import { RouteHud } from './RouteHud'
 import { useLandRoute } from './useLandRoute'
 import { useMyLocation } from './useMyLocation'
 
-export type StageHandle = { open: (id: number, intent?: FieldIntent) => void; fitAll: () => void }
+export type StageHandle = { open: (id: number, intent?: FieldIntent) => void; route: (id: number) => void; fitAll: () => void }
 
 type Props = {
   fields: Field[]
@@ -59,7 +59,9 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
   const byId = (id: number) => fields.find((f) => f.id === id)
   const routeTo = routeId !== null ? byId(routeId) ?? null : null
   const trip = useLandRoute(routeTo, loc.me)
+  const startRoute = (id: number) => { setRouteId(id); setSelected(null); loc.start() }
   useImperativeHandle(ref, () => ({
+    route: startRoute,
     open: (id, intent) => {
       const f = byId(id)
       if (f) map.current?.flyTo(f.lng, f.lat)
@@ -115,10 +117,10 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
     const target = [routeTo.lng, routeTo.lat]
     if (trip.route) {
       const end = trip.route.path[trip.route.path.length - 1]
-      return { path: trip.route.path, walkIn: metres(end, target) > 15 ? [end, target] : null }
+      return { path: trip.route.path, walkIn: metres(end, target) > 15 ? [end, target] : null, others: trip.routes.filter((r) => r !== trip.route).map((r) => r.path) }
     }
     return trip.failed && loc.me ? { path: [], walkIn: [loc.me.p, target] } : null
-  }, [routeTo, trip.route, trip.failed, loc.me])
+  }, [routeTo, trip.route, trip.routes, trip.failed, loc.me])
 
   // Frame each new trip once. Re-routes along the way leave the map where the farmer put it.
   const framed = useRef<string | null>(null)
@@ -127,7 +129,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
     const key = `${routeId}.${trip.mode}.${trip.route ? 'road' : 'line'}`
     if (framed.current === key) return
     framed.current = key
-    map.current?.fitPoints([...routeLine.path, ...(routeLine.walkIn ?? []), ...(loc.me ? [loc.me.p] : [])])
+    map.current?.fitPoints([...routeLine.path, ...(routeLine.others?.flat() ?? []), ...(routeLine.walkIn ?? []), ...(loc.me ? [loc.me.p] : [])])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeLine])
 
@@ -295,7 +297,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
           onClose={() => setSelected(null)}
           onChange={onChange}
           onRedraw={() => { setRedrawId(selected.id); setSelected(null) }}
-          onRoute={() => { setRouteId(selected.id); setSelected(null); loc.start() }}
+          onRoute={() => startRoute(selected.id)}
         />
       )}
     </>

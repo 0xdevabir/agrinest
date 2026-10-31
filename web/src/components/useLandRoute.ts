@@ -8,7 +8,7 @@ import type { MyLocation } from './useMyLocation'
 
 export type RouteMode = 'driving' | 'walking'
 export type RouteStep = { instruction: string; maneuver: string | null; distance_m: number; at: number[] }
-export type LandRoute = { summary: string | null; distance_m: number; duration_s: number; path: number[][]; steps: RouteStep[] }
+export type LandRoute = { summary: string | null; distance_m: number; duration_s: number; path: number[][]; steps: RouteStep[]; alternatives?: LandRoute[] }
 export type LandTrip = ReturnType<typeof useLandRoute>
 
 const OFF_ROUTE_M = 80
@@ -35,40 +35,63 @@ function nearestIndex(path: number[][], p: number[]) {
   return best
 }
 
+function askRoute(me: MyLocation, target: Field, mode: RouteMode) {
+  return api<{ route: LandRoute }>('/map/route', {
+    body: { from: { lat: me.p[1], lng: me.p[0] }, to: { lat: target.lat, lng: target.lng }, mode },
+  })
+}
+
 /** Directions from the user's live position to a land, re-routed when they leave the path. */
 export function useLandRoute(target: Field | null, me: MyLocation | null) {
   const [mode, setMode] = useState<RouteMode>('driving')
-  const [route, setRoute] = useState<LandRoute | null>(null)
+  const [routes, setRoutes] = useState<LandRoute[]>([])
+  const [choice, setChoice] = useState(0)
+  const [etas, setEtas] = useState<Partial<Record<RouteMode, number>>>({})
   const [failed, setFailed] = useState(false)
   const seq = useRef(0)
   const askedAt = useRef(0)
   const located = !!me
+  const route = routes[choice] ?? null
 
   const load = async () => {
     if (!target || !me) return
     const ticket = ++seq.current
     askedAt.current = Date.now()
     try {
-      const data = await api<{ route: LandRoute }>('/map/route', {
-        body: { from: { lat: me.p[1], lng: me.p[0] }, to: { lat: target.lat, lng: target.lng }, mode },
-      })
+      const data = await askRoute(me, target, mode)
       if (ticket !== seq.current) return
-      setRoute(data.route)
+      setRoutes([data.route, ...(data.route.alternatives ?? [])])
+      setChoice(0)
+      setEtas((e) => ({ ...e, [mode]: data.route.duration_s }))
       setFailed(false)
     } catch {
       if (ticket !== seq.current) return
-      setRoute(null)
+      setRoutes([])
       setFailed(true)
     }
   }
 
   useEffect(() => {
     seq.current++
-    setRoute(null)
+    setRoutes([])
+    setChoice(0)
     setFailed(false)
     if (target && located) load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.id, mode, located])
+
+  // The other mode's time, so walking and driving can be compared before switching.
+  useEffect(() => {
+    setEtas({})
+    if (!target || !me) return
+    const other: RouteMode = mode === 'driving' ? 'walking' : 'driving'
+    let live = true
+    askRoute(me, target, other)
+      .then((data) => { if (live) setEtas((e) => ({ ...e, [other]: data.route.duration_s })) })
+      .catch(() => undefined)
+    return () => { live = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target?.id, located])
 
   const arrived = !!(target && me && metres(me.p, [target.lng, target.lat]) < ARRIVED_M)
 
@@ -91,5 +114,5 @@ export function useLandRoute(target: Field | null, me: MyLocation | null) {
     return { metres_left: left, seconds_left: route.duration_s * (left / (route.distance_m || 1)), step: whole }
   }, [route, stepAt, me])
 
-  return { mode, setMode, route, failed, arrived, progress }
+  return { mode, setMode, routes, choice, setChoice, etas, route, failed, arrived, progress }
 }

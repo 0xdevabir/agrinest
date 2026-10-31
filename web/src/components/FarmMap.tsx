@@ -32,7 +32,7 @@ type Props = {
 
 export type MapBase = 'satellite' | 'map'
 /** `walkIn` is the last stretch off the road, or the straight line when no road route exists. */
-export type RouteLine = { path: number[][]; walkIn: number[][] | null }
+export type RouteLine = { path: number[][]; walkIn: number[][] | null; others?: number[][][] }
 
 export type MapDraw = {
   points: number[][]
@@ -169,6 +169,7 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
       m.addLayer({ id: 'field-line', type: 'line', source: 'fields', paint: { 'line-color': ['case', ['get', 'selected'], '#ffffff', ['get', 'color']], 'line-width': ['case', ['get', 'selected'], 3.5, 2.2] } })
 
       m.addSource('route', { type: 'geojson', data: EMPTY })
+      m.addLayer({ id: 'route-other', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'other'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#9aa5b8', 'line-width': 5 } })
       m.addLayer({ id: 'route-casing', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'road'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 9 } })
       m.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'road'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#2f7bf6', 'line-width': 5.5 } })
       m.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'walk'], layout: { 'line-cap': 'round' }, paint: { 'line-color': '#2f7bf6', 'line-width': 4, 'line-dasharray': [0.5, 2] } })
@@ -400,6 +401,7 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
     const m = map.current
     if (!loaded || !m) return
     const features: GeoJSON.Feature[] = []
+    route?.others?.forEach((path) => features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: path }, properties: { kind: 'other' } }))
     if (route && route.path.length > 1) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: route.path }, properties: { kind: 'road' } })
     if (route?.walkIn) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: route.walkIn }, properties: { kind: 'walk' } })
     ;(m.getSource('route') as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features })

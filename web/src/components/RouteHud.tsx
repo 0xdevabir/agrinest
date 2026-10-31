@@ -38,7 +38,7 @@ type Props = {
 export function RouteHud({ field, trip, located, locationFailed, onRetryLocation, onClose }: Props) {
   const { t, num, lang } = useApp()
   const [showSteps, setShowSteps] = useState(false)
-  const { mode, setMode, route, failed, arrived, progress } = trip
+  const { mode, setMode, routes, choice, setChoice, etas, route, failed, arrived, progress } = trip
 
   const dist = (m: number) => (m < 1000
     ? `${num(Math.round(m))} ${t('মি', 'm')}`
@@ -63,8 +63,8 @@ export function RouteHud({ field, trip, located, locationFailed, onRetryLocation
         </div>
 
         <div className="seg">
-          <button className={mode === 'driving' ? 'on' : ''} onClick={() => setMode('driving')}>🏍️ {t('গাড়ি / বাইক', 'Vehicle')}</button>
-          <button className={mode === 'walking' ? 'on' : ''} onClick={() => setMode('walking')}>🚶 {t('হেঁটে', 'Walking')}</button>
+          <button className={mode === 'driving' ? 'on' : ''} onClick={() => setMode('driving')}>🏍️ {t('গাড়ি / বাইক', 'Vehicle')}{etas.driving !== undefined && <span className="sub small" style={{ display: 'block' }}>{time(etas.driving)}</span>}</button>
+          <button className={mode === 'walking' ? 'on' : ''} onClick={() => setMode('walking')}>🚶 {t('হেঁটে', 'Walking')}{etas.walking !== undefined && <span className="sub small" style={{ display: 'block' }}>{time(etas.walking)}</span>}</button>
         </div>
 
         {arrived ? (
@@ -80,6 +80,16 @@ export function RouteHud({ field, trip, located, locationFailed, onRetryLocation
           <div className="small" style={{ padding: '2px 6px' }}>{t('পথ খোঁজা হচ্ছে…', 'Finding the way…')}</div>
         ) : (
           <>
+            {routes.length > 1 && !showSteps && (
+              <div className="route-options small">
+                {routes.map((r, i) => (
+                  <button key={i} className={i === choice ? 'on' : ''} aria-pressed={i === choice} onClick={() => setChoice(i)}>
+                    <span className="truncate">{t('পথ', 'Route')} {num(i + 1)}{r.summary && <span className="sub"> · {r.summary}</span>}</span>
+                    <span style={{ flex: 'none' }}>{dist(r.distance_m)} · {time(r.duration_s)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="draw-stats">
               <span><b>{dist(progress?.metres_left ?? route.distance_m)}</b></span>
               <span><b>{time(progress?.seconds_left ?? route.duration_s)}</b></span>
