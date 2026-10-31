@@ -176,8 +176,21 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 @keyframes ping { from { transform: scale(.9); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
 .edge-tag { padding: 1px 7px; border-radius: 99px; background: rgba(16, 32, 26, .78); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; pointer-events: none; }
 .map-tools { position: fixed; z-index: 10; right: 12px; top: calc(env(safe-area-inset-top) + 204px); display: flex; flex-direction: column; gap: 8px; }
-.route-steps { max-height: 26dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px 4px; }
-.route-steps > div.on { font-weight: 700; }
+.route-panel { gap: 10px; padding: 12px; background: rgba(255, 255, 255, .9); }
+.route-head { padding: 0 2px; }
+.route-head .pic-inline { width: 24px; height: 24px; margin-right: 0; flex: none; }
+.route-turn { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--r-md); background: var(--sage); color: var(--on-sage); }
+.route-turn .turn-arrow { width: 38px; height: 38px; stroke-width: 2.6; }
+.route-turn-in { font-size: 13px; opacity: .85; }
+.route-turn-what { font-size: 20px; font-weight: 700; line-height: 1.25; }
+.route-turn-road { font-size: 12px; opacity: .8; }
+.turn-arrow { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.route-sum { padding: 0 2px; font-size: 15px; }
+.route-steps-toggle { flex: none; min-height: 38px; padding: 0 12px; border: 0; border-radius: 11px; background: var(--tint); color: var(--sage); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.route-modes button { padding: 4px 6px; color: inherit; }
+.route-steps { max-height: 26dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.route-steps > div { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; }
+.route-steps > div.on { background: var(--tint); font-weight: 700; }
 .route-options { display: flex; flex-direction: column; gap: 4px; }
 .route-options button { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 42px; padding: 6px 10px; border: 2px solid var(--line); border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .route-options button.on { border-color: #2f7bf6; font-weight: 600; }

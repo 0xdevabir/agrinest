@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useApp } from '@/lib/app'
 import type { Field } from '@/lib/types'
+import { Mark } from './picture'
 import type { LandTrip, RouteStep } from './useLandRoute'
 
 // Atlas writes directions in English only, so Bangla readers get the turn from its maneuver code.
@@ -24,6 +25,31 @@ const TURN_BN: Record<string, string> = {
   'roundabout-right': 'গোলচত্বর ঘুরে যান',
   merge: 'মূল রাস্তায় উঠুন',
   straight: 'সোজা যান',
+}
+
+const TURN_ANGLE: Record<string, number> = {
+  'turn-left': -90,
+  'turn-right': 90,
+  'slight-left': -45,
+  'slight-right': 45,
+  'sharp-left': -135,
+  'sharp-right': 135,
+  'uturn-left': 180,
+  'uturn-right': 180,
+  'fork-left': -30,
+  'fork-right': 30,
+  'keep-left': -20,
+  'keep-right': 20,
+  'roundabout-left': -90,
+  'roundabout-right': 90,
+}
+
+function TurnArrow({ maneuver }: { maneuver: string | null }) {
+  return (
+    <svg className="turn-arrow" viewBox="0 0 24 24" aria-hidden="true" style={{ transform: `rotate(${TURN_ANGLE[maneuver ?? ''] ?? 0}deg)` }}>
+      <path d="M12 20V5M6 11l6-6 6 6" />
+    </svg>
+  )
 }
 
 type Props = {
@@ -52,19 +78,13 @@ export function RouteHud({ field, trip, located, locationFailed, onRetryLocation
   const turn = (s: RouteStep) => (lang === 'bn' ? TURN_BN[s.maneuver ?? ''] ?? 'সামনে এগিয়ে যান' : s.instruction)
 
   const next = route && progress && progress.step >= 0 ? route.steps[progress.step] : null
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${field.lat},${field.lng}&travelmode=${mode}`
 
   return (
     <div className="hud-bottom" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)', padding: '0 12px' }}>
-      <div className="glass draw-panel" aria-live="polite">
-        <div className="row between" style={{ padding: '2px 6px' }}>
-          <b className="truncate">🧭 {field.name}</b>
+      <div className="glass draw-panel route-panel" aria-live="polite">
+        <div className="row between route-head">
+          <span className="row truncate" style={{ gap: 6 }}><Mark name="pin" frame="inline" /><b className="truncate">{field.name}</b></span>
           <button className="close" aria-label={t('পথ দেখানো বন্ধ করুন', 'Stop directions')} onClick={onClose}>✕</button>
-        </div>
-
-        <div className="seg">
-          <button className={mode === 'driving' ? 'on' : ''} onClick={() => setMode('driving')}>🏍️ {t('গাড়ি / বাইক', 'Vehicle')}{etas.driving !== undefined && <span className="sub small" style={{ display: 'block' }}>{time(etas.driving)}</span>}</button>
-          <button className={mode === 'walking' ? 'on' : ''} onClick={() => setMode('walking')}>🚶 {t('হেঁটে', 'Walking')}{etas.walking !== undefined && <span className="sub small" style={{ display: 'block' }}>{time(etas.walking)}</span>}</button>
         </div>
 
         {arrived ? (
@@ -80,6 +100,23 @@ export function RouteHud({ field, trip, located, locationFailed, onRetryLocation
           <div className="small" style={{ padding: '2px 6px' }}>{t('পথ খোঁজা হচ্ছে…', 'Finding the way…')}</div>
         ) : (
           <>
+            {next && progress && (
+              <div className="route-turn">
+                <TurnArrow maneuver={next.maneuver} />
+                <div className="grow">
+                  <div className="route-turn-in">{lang === 'bn' ? `${dist(progress.metres_to_turn)} পরে` : `In ${dist(progress.metres_to_turn)}`}</div>
+                  <div className="route-turn-what">{turn(next)}</div>
+                  {lang === 'bn' && <div className="route-turn-road truncate">{next.instruction}</div>}
+                </div>
+              </div>
+            )}
+            <div className="row between route-sum">
+              <div className="grow">
+                <b>{time(progress?.seconds_left ?? route.duration_s)}</b>
+                <span className="sub"> · {dist(progress?.metres_left ?? route.distance_m)}</span>
+              </div>
+              {route.steps.length > 0 && <button className="route-steps-toggle" aria-expanded={showSteps} onClick={() => setShowSteps(!showSteps)}>{showSteps ? t('ধাপ লুকান', 'Hide steps') : t('সব ধাপ', 'All steps')}</button>}
+            </div>
             {routes.length > 1 && !showSteps && (
               <div className="route-options small">
                 {routes.map((r, i) => (
@@ -90,16 +127,13 @@ export function RouteHud({ field, trip, located, locationFailed, onRetryLocation
                 ))}
               </div>
             )}
-            <div className="draw-stats">
-              <span><b>{dist(progress?.metres_left ?? route.distance_m)}</b></span>
-              <span><b>{time(progress?.seconds_left ?? route.duration_s)}</b></span>
-            </div>
-            {next && <div className="small" style={{ padding: '0 6px', fontWeight: 600 }}>➡️ {turn(next)}{lang === 'bn' && <span className="sub"> · {next.instruction}</span>}</div>}
             {showSteps && (
               <div className="route-steps small">
                 {route.steps.map((s, i) => (
                   <div key={i} className={i === progress?.step ? 'on' : ''}>
-                    {num(i + 1)}. {turn(s)}{lang === 'bn' && <span className="sub"> · {s.instruction}</span>} <span className="sub">({dist(s.distance_m)})</span>
+                    <TurnArrow maneuver={s.maneuver} />
+                    <span className="grow">{turn(s)}{lang === 'bn' && <span className="sub"> · {s.instruction}</span>}</span>
+                    <span className="sub" style={{ flex: 'none' }}>{dist(s.distance_m)}</span>
                   </div>
                 ))}
               </div>
@@ -107,9 +141,9 @@ export function RouteHud({ field, trip, located, locationFailed, onRetryLocation
           </>
         )}
 
-        <div className="row">
-          {route && route.steps.length > 0 && !arrived && <button className="btn soft small grow" style={{ minHeight: 42 }} onClick={() => setShowSteps(!showSteps)}>{showSteps ? t('ধাপ লুকান', 'Hide steps') : t('সব ধাপ', 'All steps')}</button>}
-          <a className="btn soft small grow" style={{ minHeight: 42 }} href={mapsUrl} target="_blank" rel="noopener noreferrer">{t('Google Maps-এ খুলুন', 'Open in Google Maps')}</a>
+        <div className="seg route-modes">
+          <button className={mode === 'driving' ? 'on' : ''} onClick={() => setMode('driving')}>{t('গাড়ি / বাইক', 'Vehicle')}{etas.driving !== undefined && <span className="sub small" style={{ display: 'block' }}>{time(etas.driving)}</span>}</button>
+          <button className={mode === 'walking' ? 'on' : ''} onClick={() => setMode('walking')}>{t('হেঁটে', 'Walking')}{etas.walking !== undefined && <span className="sub small" style={{ display: 'block' }}>{time(etas.walking)}</span>}</button>
         </div>
       </div>
     </div>

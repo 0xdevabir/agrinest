@@ -111,7 +111,9 @@ export function useLandRoute(target: Field | null, me: MyLocation | null) {
     let left = 0
     for (let i = at + 1; i < route.path.length; i++) left += metres(route.path[i - 1], route.path[i])
     const whole = stepAt.length ? stepAt.findIndex((i) => i > at) : -1
-    return { metres_left: left, seconds_left: route.duration_s * (left / (route.distance_m || 1)), step: whole }
+    let toTurn = 0
+    if (whole >= 0) for (let i = at + 1; i <= stepAt[whole]; i++) toTurn += metres(route.path[i - 1], route.path[i])
+    return { metres_left: left, metres_to_turn: toTurn, seconds_left: route.duration_s * (left / (route.distance_m || 1)), step: whole }
   }, [route, stepAt, me])
 
   return { mode, setMode, routes, choice, setChoice, etas, route, failed, arrived, progress }
