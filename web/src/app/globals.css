@@ -175,6 +175,10 @@ label.lbl { display: block; font-size: 13px; color: var(--ink-2); margin: 0 0 6p
 .crop-label { margin-top: 4px; padding: 2px 9px; border-radius: 99px; background: rgba(20, 25, 25, .72); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 @keyframes ping { from { transform: scale(.9); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
 .edge-tag { padding: 1px 7px; border-radius: 99px; background: rgba(16, 32, 26, .78); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+.map-tools { position: fixed; z-index: 10; right: 12px; top: calc(env(safe-area-inset-top) + 204px); display: flex; flex-direction: column; gap: 8px; }
+.route-steps { max-height: 26dvh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px 4px; }
+.route-steps > div.on { font-weight: 700; }
+@media (min-width: 900px) { .map-tools { top: calc(env(safe-area-inset-top) + 84px); right: 16px; } }
 .draw-tools { position: fixed; z-index: 10; right: 12px; top: calc(env(safe-area-inset-top) + 212px); display: flex; flex-direction: column; gap: 6px; }
 .draw-tools .round { width: 40px; height: 40px; font-size: 18px; }
 .draw-tools .round:disabled { opacity: .6; cursor: default; }

@@ -8,6 +8,7 @@ import { useApp } from '@/lib/app'
 import { metres } from '@/lib/landGeo'
 import { cropSrc } from '@/components/picture'
 import { HEALTH, type Field } from '@/lib/types'
+import type { MyLocation } from './useMyLocation'
 
 export type MapHandle = {
   flyTo: (lng: number, lat: number, zoom?: number, pitch?: number) => void
@@ -24,7 +25,14 @@ type Props = {
   /** In draw mode, the map edits this boundary instead of selecting land. */
   draw?: MapDraw
   showFarmer?: boolean
+  base?: MapBase
+  me?: MyLocation | null
+  route?: RouteLine | null
 }
+
+export type MapBase = 'satellite' | 'map'
+/** `walkIn` is the last stretch off the road, or the straight line when no road route exists. */
+export type RouteLine = { path: number[][]; walkIn: number[][] | null }
 
 export type MapDraw = {
   points: number[][]
@@ -62,8 +70,22 @@ function boundsOf(fields: Field[]): LngLatBoundsLike | null {
   return [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]]
 }
 
-export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, selectedId, onSelect, draw, showFarmer }, ref) {
-  const { pick } = useApp()
+const tileUrl = (style: string, lang?: string) => `${window.location.origin}/api/map/tiles/${style}/{z}/{x}/{y}${lang ? `?lang=${lang}` : ''}`
+
+/** The GPS error margin as a ring on the ground. */
+function accuracyRing([lng, lat]: number[], radius: number): GeoJSON.Polygon {
+  const dLat = radius / 110540
+  const dLng = radius / (111320 * Math.cos((lat * Math.PI) / 180))
+  const ring = Array.from({ length: 33 }, (_, i) => {
+    const a = (i / 32) * 2 * Math.PI
+    return [lng + dLng * Math.cos(a), lat + dLat * Math.sin(a)]
+  })
+  return { type: 'Polygon', coordinates: [ring] }
+}
+
+export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, selectedId, onSelect, draw, showFarmer, base = 'satellite', me, route }, ref) {
+  const { pick, lang } = useApp()
+  const labelLang = useRef(lang)
   const box = useRef<HTMLDivElement>(null)
   const map = useRef<MapLibre | null>(null)
   const markers = useRef<Marker[]>([])
@@ -117,13 +139,20 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
         sources: {
           satellite: {
             type: 'raster',
-            tiles: [`${window.location.origin}/api/map/tiles/satellite/{z}/{x}/{y}`],
+            tiles: [tileUrl('satellite')],
             tileSize: 256,
             maxzoom: 20,
             attribution: 'Atlas · Map data ©Google',
           },
+          // Road, village and place names over the photo, or the same on a drawn map.
+          labels: { type: 'raster', tiles: [tileUrl('labels', lang)], tileSize: 256, maxzoom: 20, attribution: 'Atlas · Map data ©Google' },
+          light: { type: 'raster', tiles: [tileUrl('light', lang)], tileSize: 256, maxzoom: 20, attribution: 'Atlas · Map data ©Google' },
         },
-        layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }],
+        layers: [
+          { id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: base === 'satellite' ? 'visible' : 'none' } },
+          { id: 'labels', type: 'raster', source: 'labels', layout: { visibility: base === 'satellite' ? 'visible' : 'none' } },
+          { id: 'light', type: 'raster', source: 'light', layout: { visibility: base === 'map' ? 'visible' : 'none' } },
+        ],
       },
       // Tiles sit behind the signed-in API, which holds the Atlas key server-side.
       transformRequest: (url) => (url.includes('/api/map/')
@@ -138,6 +167,15 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
       m.addLayer({ id: 'field-fill', type: 'fill', source: 'fields', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': ['case', ['get', 'selected'], 0.5, 0.28] } })
       m.addLayer({ id: 'field-line-glow', type: 'line', source: 'fields', paint: { 'line-color': ['get', 'color'], 'line-width': 9, 'line-opacity': 0.3, 'line-blur': 5 } })
       m.addLayer({ id: 'field-line', type: 'line', source: 'fields', paint: { 'line-color': ['case', ['get', 'selected'], '#ffffff', ['get', 'color']], 'line-width': ['case', ['get', 'selected'], 3.5, 2.2] } })
+
+      m.addSource('route', { type: 'geojson', data: EMPTY })
+      m.addLayer({ id: 'route-casing', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'road'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 9 } })
+      m.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'road'], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#2f7bf6', 'line-width': 5.5 } })
+      m.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'walk'], layout: { 'line-cap': 'round' }, paint: { 'line-color': '#2f7bf6', 'line-width': 4, 'line-dasharray': [0.5, 2] } })
+
+      m.addSource('me', { type: 'geojson', data: EMPTY })
+      m.addLayer({ id: 'me-accuracy', type: 'fill', source: 'me', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': '#2f7bf6', 'fill-opacity': 0.16 } })
+      m.addLayer({ id: 'me-dot', type: 'circle', source: 'me', filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 8, 'circle-color': '#2f7bf6', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } })
 
       m.addSource('draft', { type: 'geojson', data: EMPTY })
       m.addLayer({ id: 'draft-fill', type: 'fill', source: 'draft', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ['case', ['get', 'bad'], '#e5484d', '#96eefb'], 'fill-opacity': 0.28 } })
@@ -332,6 +370,40 @@ export const FarmMap = forwardRef<MapHandle, Props>(function FarmMap({ fields, s
     // The map is created once; live data flows through the effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    const m = map.current
+    if (!loaded || !m) return
+    m.setLayoutProperty('satellite', 'visibility', base === 'satellite' ? 'visible' : 'none')
+    m.setLayoutProperty('labels', 'visibility', base === 'satellite' ? 'visible' : 'none')
+    m.setLayoutProperty('light', 'visibility', base === 'map' ? 'visible' : 'none')
+  }, [base, loaded])
+
+  useEffect(() => {
+    const m = map.current
+    if (!loaded || !m || labelLang.current === lang) return
+    labelLang.current = lang
+    ;(m.getSource('labels') as maplibregl.RasterTileSource).setTiles([tileUrl('labels', lang)])
+    ;(m.getSource('light') as maplibregl.RasterTileSource).setTiles([tileUrl('light', lang)])
+  }, [lang, loaded])
+
+  useEffect(() => {
+    const m = map.current
+    if (!loaded || !m) return
+    const features: GeoJSON.Feature[] = []
+    if (me?.acc) features.push({ type: 'Feature', geometry: accuracyRing(me.p, me.acc), properties: {} })
+    if (me) features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: me.p }, properties: {} })
+    ;(m.getSource('me') as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features })
+  }, [me, loaded])
+
+  useEffect(() => {
+    const m = map.current
+    if (!loaded || !m) return
+    const features: GeoJSON.Feature[] = []
+    if (route && route.path.length > 1) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: route.path }, properties: { kind: 'road' } })
+    if (route?.walkIn) features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: route.walkIn }, properties: { kind: 'walk' } })
+    ;(m.getSource('route') as maplibregl.GeoJSONSource).setData({ type: 'FeatureCollection', features })
+  }, [route, loaded])
 
   // Land polygons
   useEffect(() => {

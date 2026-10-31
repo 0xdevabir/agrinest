@@ -67,7 +67,7 @@ php artisan agrinest:provision officer 01XXXXXXXXX "Full Name" --district=Rajsha
 |----------|---------|
 | `APP_KEY` | Laravel encryption key (required) |
 | `DB_PASSWORD` | Postgres password (required) |
-| `ATLAS_API_KEY` | Map tiles, search and weather. Used only on the server |
+| `ATLAS_API_KEY` | Map tiles, search, directions and weather. Used only on the server |
 | `NOVA_API_KEY` | AI scan feedback. Without a working key, scans use a colour check and are labelled as such |
 | `SEED_DEMO` | Create demo accounts on first boot |
 | `WEB_PORT`, `API_PORT` | Host ports (defaults 5173, 8000) |

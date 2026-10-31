@@ -265,6 +265,48 @@ class AgrinestFlowTest extends TestCase
         $this->assertSame(2, $after['seasons_learned']);
     }
 
+    public function test_route_to_land_returns_map_ready_geometry_and_steps(): void
+    {
+        Sanctum::actingAs($this->user('farmer'));
+        Http::fake(['*/v1/routes' => Http::response(['data' => [
+            'summary' => 'Rd 10',
+            'distance' => ['value' => 900],
+            'duration' => ['value' => 300],
+            'path' => [['lat' => 24.74, 'lng' => 90.41], ['lat' => 24.75, 'lng' => 90.42]],
+            'legs' => [['steps' => [['instruction' => 'Turn left onto Rd 10', 'maneuver' => 'turn-left', 'distance' => ['value' => 900], 'startLocation' => ['lat' => 24.74, 'lng' => 90.41]]]]],
+        ]])]);
+
+        $this->postJson('/api/map/route', ['from' => ['lat' => 24.74, 'lng' => 90.41], 'to' => ['lat' => 24.75, 'lng' => 90.42], 'mode' => 'walking'])
+            ->assertOk()
+            ->assertJsonPath('route.distance_m', 900)
+            ->assertJsonPath('route.path.0', [90.41, 24.74])
+            ->assertJsonPath('route.steps.0.maneuver', 'turn-left')
+            ->assertJsonPath('route.steps.0.at', [90.41, 24.74]);
+
+        Http::assertSent(fn ($r) => str_ends_with($r->url(), '/v1/routes') && $r['mode'] === 'walking');
+    }
+
+    public function test_route_reports_failure_when_atlas_has_no_route(): void
+    {
+        Sanctum::actingAs($this->user('farmer'));
+        Http::fake(['*/v1/routes' => Http::response(['error' => ['code' => 'ZERO_RESULTS']], 404)]);
+
+        $this->postJson('/api/map/route', ['from' => ['lat' => 24.74, 'lng' => 90.41], 'to' => ['lat' => 24.75, 'lng' => 90.42], 'mode' => 'driving'])
+            ->assertStatus(502);
+    }
+
+    public function test_label_tiles_ask_atlas_for_the_requested_language(): void
+    {
+        Sanctum::actingAs($this->user('farmer'));
+        Http::fake(['*/v1/maps/atlas/labels/*' => Http::response('tile', 200, ['Content-Type' => 'image/png'])]);
+        // Tiles live in the file cache, which outlasts a test run.
+        \Illuminate\Support\Facades\Cache::store('file')->forget('atlas:tile:labels:en:15:1:1');
+
+        $this->get('/api/map/tiles/labels/15/1/1?lang=en')->assertOk();
+
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/v1/maps/atlas/labels/15/1/1') && $r['lang'] === 'en');
+    }
+
     public function test_loading_map_tiles_does_not_use_up_the_scan_allowance(): void
     {
         $farmer = $this->user('farmer');

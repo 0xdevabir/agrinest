@@ -102,13 +102,49 @@ class AtlasClient
             ->values()->all();
     }
 
-    /** @return array{body: string, type: string}|null */
-    public function tile(string $style, int $z, int $x, int $y): ?array
+    /**
+     * Road directions between two points. Null when there is no route or Atlas is unreachable.
+     * Points are farmers' live positions, so they are never cached or logged here.
+     *
+     * @param  array{lat: float, lng: float}  $from
+     * @param  array{lat: float, lng: float}  $to
+     */
+    public function route(array $from, array $to, string $mode): ?array
     {
-        return Cache::store('file')->remember("atlas:tile:$style:$z:$x:$y", now()->addDays(7), function () use ($style, $z, $x, $y) {
+        try {
+            $response = $this->http(20)->post('/v1/routes', ['origin' => $from, 'destination' => $to, 'mode' => $mode, 'units' => 'metric']);
+        } catch (ConnectionException) {
+            return null;
+        }
+        $data = $response->successful() ? $response->json('data') : null;
+        if (! is_array($data) || empty($data['path'])) {
+            return null;
+        }
+
+        return [
+            'summary' => $data['summary'] ?? null,
+            'distance_m' => $data['distance']['value'] ?? 0,
+            'duration_s' => $data['durationInTraffic']['value'] ?? $data['duration']['value'] ?? 0,
+            'path' => array_map(fn ($p) => [$p['lng'], $p['lat']], $data['path']),
+            'steps' => collect($data['legs'] ?? [])->flatMap(fn ($leg) => $leg['steps'] ?? [])->map(fn ($s) => [
+                'instruction' => $s['instruction'] ?? '',
+                'maneuver' => $s['maneuver'] ?? null,
+                'distance_m' => $s['distance']['value'] ?? 0,
+                'at' => [$s['startLocation']['lng'] ?? null, $s['startLocation']['lat'] ?? null],
+            ])->filter(fn ($s) => $s['at'][0] !== null)->values()->all(),
+        ];
+    }
+
+    /** @return array{body: string, type: string}|null */
+    public function tile(string $style, int $z, int $x, int $y, string $lang = 'bn'): ?array
+    {
+        // Photos carry no text, so only the drawn themes vary by language.
+        $variant = $style === 'satellite' ? $style : "$style:$lang";
+
+        return Cache::store('file')->remember("atlas:tile:$variant:$z:$x:$y", now()->addDays(7), function () use ($style, $z, $x, $y, $lang) {
             [$path, $query] = $style === 'satellite'
                 ? ["/v1/maps/tiles/$z/$x/$y", ['type' => 'satellite']]
-                : ["/v1/maps/atlas/$style/$z/$x/$y", []];
+                : ["/v1/maps/atlas/$style/$z/$x/$y", ['lang' => $lang, 'poi' => 1, 'scale' => 2]];
             try {
                 $response = $this->http(15)->get($path, $query);
             } catch (ConnectionException) {

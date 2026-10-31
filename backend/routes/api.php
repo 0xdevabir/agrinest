@@ -30,10 +30,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/agent/farmers', [DashboardController::class, 'addFarmer']);
 
     Route::get('/map/tiles/{style}/{z}/{x}/{y}', [MapController::class, 'tile'])
-        ->whereIn('style', ['satellite', 'light', 'dark'])
+        ->whereIn('style', ['satellite', 'light', 'dark', 'labels'])
         ->whereNumber(['z', 'x', 'y'])
         ->middleware('throttle:tiles');
     Route::get('/map/search', [MapController::class, 'search'])->middleware('throttle:map-search');
+    Route::post('/map/route', [MapController::class, 'route'])->middleware('throttle:map-route');
 
     Route::get('/fields', [FieldController::class, 'index']);
     Route::post('/fields', [FieldController::class, 'store']);

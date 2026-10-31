@@ -4,13 +4,17 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState, 
 import { api } from '@/lib/api'
 import { useApp } from '@/lib/app'
 import type { Field } from '@/lib/types'
-import { FarmMap, type MapHandle } from './FarmMap'
+import { metres } from '@/lib/landGeo'
+import { FarmMap, type MapBase, type MapHandle, type RouteLine } from './FarmMap'
 import { FieldSheet, type FieldIntent } from './FieldSheet'
 import { PlantSheet } from './actions'
 import { LandDrawHud } from './LandDrawHud'
 import { Mark } from './picture'
 import { FlowDone, Sheet, StepBar, StepNav } from './ui'
 import { useLandDraft } from './useLandDraft'
+import { RouteHud } from './RouteHud'
+import { useLandRoute } from './useLandRoute'
+import { useMyLocation } from './useMyLocation'
 
 export type StageHandle = { open: (id: number, intent?: FieldIntent) => void; fitAll: () => void }
 
@@ -47,7 +51,14 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
   // The land just saved, while its flow finishes: first the crop, then what to do next.
   const [added, setAdded] = useState<{ field: Field; planted?: boolean; ended?: boolean } | null>(null)
 
+  const loc = useMyLocation()
+  const flyToMe = useRef(false)
+  const [routeId, setRouteId] = useState<number | null>(null)
+  const [base, setBase] = useState<MapBase>('satellite')
+
   const byId = (id: number) => fields.find((f) => f.id === id)
+  const routeTo = routeId !== null ? byId(routeId) ?? null : null
+  const trip = useLandRoute(routeTo, loc.me)
   useImperativeHandle(ref, () => ({
     open: (id, intent) => {
       const f = byId(id)
@@ -82,11 +93,43 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
   const { points } = draft
 
   const locate = () => {
-    navigator.geolocation?.getCurrentPosition(
-      (pos) => map.current?.flyTo(pos.coords.longitude, pos.coords.latitude, 17, 0),
-      () => toast(t('লোকেশন পাওয়া যায়নি, গ্রামের নাম খুঁজুন', 'Location unavailable. Search your village instead.')),
-    )
+    if (loc.me) { map.current?.flyTo(loc.me.p[0], loc.me.p[1], 17, 0); return }
+    flyToMe.current = true
+    loc.start()
   }
+
+  useEffect(() => {
+    if (!flyToMe.current) return
+    if (loc.me) {
+      flyToMe.current = false
+      map.current?.flyTo(loc.me.p[0], loc.me.p[1], 17, 0)
+    } else if (loc.failed) {
+      flyToMe.current = false
+      toast(t('লোকেশন পাওয়া যায়নি, গ্রামের নাম খুঁজুন', 'Location unavailable. Search your village instead.'))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loc.me, loc.failed])
+
+  const routeLine = useMemo<RouteLine | null>(() => {
+    if (!routeTo) return null
+    const target = [routeTo.lng, routeTo.lat]
+    if (trip.route) {
+      const end = trip.route.path[trip.route.path.length - 1]
+      return { path: trip.route.path, walkIn: metres(end, target) > 15 ? [end, target] : null }
+    }
+    return trip.failed && loc.me ? { path: [], walkIn: [loc.me.p, target] } : null
+  }, [routeTo, trip.route, trip.failed, loc.me])
+
+  // Frame each new trip once. Re-routes along the way leave the map where the farmer put it.
+  const framed = useRef<string | null>(null)
+  useEffect(() => {
+    if (!routeLine) { if (!routeTo) framed.current = null; return }
+    const key = `${routeId}.${trip.mode}.${trip.route ? 'road' : 'line'}`
+    if (framed.current === key) return
+    framed.current = key
+    map.current?.fitPoints([...routeLine.path, ...(routeLine.walkIn ?? []), ...(loc.me ? [loc.me.p] : [])])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeLine])
 
   const search = async () => {
     if (query.trim().length < 2) return
@@ -157,10 +200,22 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
         selectedId={selected?.id}
         showFarmer={showFarmer}
         draw={draft.mapDraw}
+        base={base}
+        me={loc.me}
+        route={routeLine}
         onSelect={(f) => { map.current?.flyTo(f.lng, f.lat); setSelected({ id: f.id }) }}
       />
 
-      {!drawing && children}
+      {!drawing && !routeTo && children}
+
+      {!drawing && (
+        <div className="map-tools">
+          <button className="round glass" aria-label={t('আমার অবস্থান', 'My location')} title={t('আমার অবস্থান', 'My location')} onClick={locate}>📍</button>
+          <button className="round glass" aria-label={base === 'satellite' ? t('রাস্তার ম্যাপ দেখুন', 'Show road map') : t('স্যাটেলাইট ছবি দেখুন', 'Show satellite photo')} title={base === 'satellite' ? t('রাস্তার ম্যাপ দেখুন', 'Show road map') : t('স্যাটেলাইট ছবি দেখুন', 'Show satellite photo')} onClick={() => setBase(base === 'satellite' ? 'map' : 'satellite')}>{base === 'satellite' ? '🗺️' : '🛰️'}</button>
+        </div>
+      )}
+
+      {routeTo && !drawing && <RouteHud field={routeTo} trip={trip} located={!!loc.me} locationFailed={loc.failed} onRetryLocation={loc.start} onClose={() => { setRouteId(null); setSelected({ id: routeTo.id }) }} />}
 
       {drawing && (
         <>
@@ -168,6 +223,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
             <form className="row" onSubmit={(e) => { e.preventDefault(); search() }}>
               <input className="input glass grow" style={{ minHeight: 44, borderRadius: 22 }} placeholder={t('গ্রাম বা এলাকা খুঁজুন', 'Search village or area')} aria-label={t('গ্রাম বা এলাকা খুঁজুন', 'Search village or area')} value={query} onChange={(e) => setQuery(e.target.value)} />
               <button type="button" className="round glass" aria-label={t('আমার অবস্থান', 'My location')} onClick={locate}>📍</button>
+              <button type="button" className="round glass" aria-label={base === 'satellite' ? t('রাস্তার ম্যাপ দেখুন', 'Show road map') : t('স্যাটেলাইট ছবি দেখুন', 'Show satellite photo')} onClick={() => setBase(base === 'satellite' ? 'map' : 'satellite')}>{base === 'satellite' ? '🗺️' : '🛰️'}</button>
             </form>
             {results.length > 0 && (
               <div className="group">
@@ -239,6 +295,7 @@ export const MapStage = forwardRef<StageHandle, Props>(function MapStage({ field
           onClose={() => setSelected(null)}
           onChange={onChange}
           onRedraw={() => { setRedrawId(selected.id); setSelected(null) }}
+          onRoute={() => { setRouteId(selected.id); setSelected(null); loc.start() }}
         />
       )}
     </>

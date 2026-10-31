@@ -13,7 +13,7 @@ type Action = FieldIntent | 'guidance' | 'edit-crop' | null
 
 const ADVICE_MARK: Record<string, MarkName> = { water: 'water', fertilizer: 'fertilizer', scan: 'camera', harvest: 'harvest' }
 
-export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }: { id: number; intent?: FieldIntent; preview?: Field; onClose: () => void; onChange: () => void | Promise<void>; onRedraw: () => void }) {
+export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw, onRoute }: { id: number; intent?: FieldIntent; preview?: Field; onClose: () => void; onChange: () => void | Promise<void>; onRedraw: () => void; onRoute: () => void }) {
   const { t, pick, num, lang, user, toast, refreshUser } = useApp()
   const { data, error, reload } = useData<{ field: FieldDetail }>(`/fields/${id}`)
   const f = data?.field
@@ -94,6 +94,7 @@ export function FieldSheet({ id, intent, preview, onClose, onChange, onRedraw }:
               ) : (
                 <div className="sub">{t('এই জমিতে এখন কোনো ফসল নেই।', 'Nothing is growing on this land right now.')}</div>
               )}
+              <button className="btn soft block" onClick={onRoute}>🧭 {t('জমিতে যাওয়ার পথ দেখুন', 'Directions to this land')}</button>
               {canManage && (
                 <div className="row">
                   {!f.cycle && <button className="btn grow" onClick={() => setAction('plant')}>🌱 {t('ফসল লাগান', 'Plant a crop')}</button>}
